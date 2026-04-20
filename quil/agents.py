@@ -72,7 +72,7 @@ def extract_json(text: str) -> dict | None:
 
 
 def load_prompt(name: str) -> str:
-    """Load a prompt template from harness/prompts/{name}.md."""
+    """Load a prompt template from quil/prompts/{name}.md."""
     path = PROMPTS_DIR / f"{name}.md"
     return path.read_text()
 

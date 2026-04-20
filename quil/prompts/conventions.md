@@ -1,15 +1,15 @@
 # Agent Conventions
 
-Rules in this file are consumed by the agent harness (Planner, Coder, Reviewer).
+Rules in this file are consumed by quil (Planner, Coder, Reviewer).
 
 ## File Mapping
 
 When a change touches one domain, the affected files follow this pattern:
 
-- Model changes → `blueflow/models/<model>.py`
-- View changes → `blueflow/views/<view>.py`
-- Serializer changes → `blueflow/serializers/<serializer>.py`
-- Test for any file `blueflow/<module>/foo.py` → `blueflow/tests/test_<module>_foo.py`
+- Model changes → `<repo>/models/<model>.py`
+- View changes → `<repo>/views/<view>.py`
+- Serializer changes → `<repo>/serializers/<serializer>.py`
+- Test for any file `<repo>/<module>/foo.py` → `<repo>/tests/test_<module>_foo.py`
 
 ## Commit Rules
 
@@ -30,11 +30,11 @@ When a change touches one domain, the affected files follow this pattern:
 
 These paths require human review and must not be changed by agents:
 
-- `blueflow/migrations/` — never edit migration files directly
+- `<repo>/migrations/` — never edit migration files directly
 - `project/settings/` — settings changes require human review
 - `pyproject.toml` — never modify linter config, dependencies, or project metadata
 - `conftest.py` (root) — shared test infrastructure; changes affect all tests
-- Any file outside `blueflow/` and `tests/` without explicit plan approval
+- Any file outside `<repo>/` and `tests/` without explicit plan approval
 
 ## Validation Commands
 

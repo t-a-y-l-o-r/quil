@@ -1,4 +1,4 @@
-"""GitHub label state machine and gh CLI wrappers for the agent harness."""
+"""GitHub label state machine and gh CLI wrappers for quil."""
 
 import json
 import re
