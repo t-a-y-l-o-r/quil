@@ -1,0 +1,818 @@
+test	Set up job	﻿2026-04-19T02:59:35.2060003Z Current runner version: '2.333.1'
+test	Set up job	2026-04-19T02:59:35.2085377Z ##[group]Runner Image Provisioner
+test	Set up job	2026-04-19T02:59:35.2086258Z Hosted Compute Agent
+test	Set up job	2026-04-19T02:59:35.2086894Z Version: 20260213.493
+test	Set up job	2026-04-19T02:59:35.2087532Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+test	Set up job	2026-04-19T02:59:35.2088200Z Build Date: 2026-02-13T00:28:41Z
+test	Set up job	2026-04-19T02:59:35.2088919Z Worker ID: {5dfcea79-991f-4277-a88b-11bf971ec8a8}
+test	Set up job	2026-04-19T02:59:35.2089634Z Azure Region: westcentralus
+test	Set up job	2026-04-19T02:59:35.2090178Z ##[endgroup]
+test	Set up job	2026-04-19T02:59:35.2091579Z ##[group]Operating System
+test	Set up job	2026-04-19T02:59:35.2092158Z Ubuntu
+test	Set up job	2026-04-19T02:59:35.2092645Z 24.04.4
+test	Set up job	2026-04-19T02:59:35.2093055Z LTS
+test	Set up job	2026-04-19T02:59:35.2093604Z ##[endgroup]
+test	Set up job	2026-04-19T02:59:35.2094069Z ##[group]Runner Image
+test	Set up job	2026-04-19T02:59:35.2094652Z Image: ubuntu-24.04
+test	Set up job	2026-04-19T02:59:35.2095458Z Version: 20260413.86.1
+test	Set up job	2026-04-19T02:59:35.2096423Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260413.86/images/ubuntu/Ubuntu2404-Readme.md
+test	Set up job	2026-04-19T02:59:35.2098105Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260413.86
+test	Set up job	2026-04-19T02:59:35.2099056Z ##[endgroup]
+test	Set up job	2026-04-19T02:59:35.2101654Z ##[group]GITHUB_TOKEN Permissions
+test	Set up job	2026-04-19T02:59:35.2103593Z Actions: write
+test	Set up job	2026-04-19T02:59:35.2104131Z ArtifactMetadata: write
+test	Set up job	2026-04-19T02:59:35.2104798Z Attestations: write
+test	Set up job	2026-04-19T02:59:35.2105687Z Checks: write
+test	Set up job	2026-04-19T02:59:35.2106195Z Contents: write
+test	Set up job	2026-04-19T02:59:35.2106766Z Deployments: write
+test	Set up job	2026-04-19T02:59:35.2107247Z Discussions: write
+test	Set up job	2026-04-19T02:59:35.2107769Z Issues: write
+test	Set up job	2026-04-19T02:59:35.2108255Z Metadata: read
+test	Set up job	2026-04-19T02:59:35.2108779Z Models: read
+test	Set up job	2026-04-19T02:59:35.2109268Z Packages: write
+test	Set up job	2026-04-19T02:59:35.2109821Z Pages: write
+test	Set up job	2026-04-19T02:59:35.2110450Z PullRequests: write
+test	Set up job	2026-04-19T02:59:35.2110969Z RepositoryProjects: write
+test	Set up job	2026-04-19T02:59:35.2111594Z SecurityEvents: write
+test	Set up job	2026-04-19T02:59:35.2112111Z Statuses: write
+test	Set up job	2026-04-19T02:59:35.2112664Z ##[endgroup]
+test	Set up job	2026-04-19T02:59:35.2114663Z Secret source: Actions
+test	Set up job	2026-04-19T02:59:35.2115665Z Prepare workflow directory
+test	Set up job	2026-04-19T02:59:35.2593468Z Prepare all required actions
+test	Set up job	2026-04-19T02:59:35.2631138Z Getting action download info
+test	Set up job	2026-04-19T02:59:35.6609521Z Download action repository 'actions/checkout@v6' (SHA:de0fac2e4500dabe0009e67214ff5f5447ce83dd)
+test	Set up job	2026-04-19T02:59:35.7677939Z Download action repository 'astral-sh/setup-uv@v7' (SHA:37802adc94f370d6bfd71619e3f0bf239e1f3b78)
+test	Set up job	2026-04-19T02:59:36.7944741Z Download action repository 'actions/setup-python@v6' (SHA:a309ff8b426b58ec0e2a45f0f869d46889d02405)
+test	Set up job	2026-04-19T02:59:36.9981876Z Complete job name: test
+test	Initialize containers	﻿2026-04-19T02:59:37.0520467Z ##[group]Checking docker version
+test	Initialize containers	2026-04-19T02:59:37.0534327Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+test	Initialize containers	2026-04-19T02:59:37.0907510Z '1.48'
+test	Initialize containers	2026-04-19T02:59:37.0922551Z Docker daemon API version: '1.48'
+test	Initialize containers	2026-04-19T02:59:37.0924020Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+test	Initialize containers	2026-04-19T02:59:37.1116911Z '1.48'
+test	Initialize containers	2026-04-19T02:59:37.1125723Z Docker client API version: '1.48'
+test	Initialize containers	2026-04-19T02:59:37.1132882Z ##[endgroup]
+test	Initialize containers	2026-04-19T02:59:37.1136355Z ##[group]Clean up resources from previous jobs
+test	Initialize containers	2026-04-19T02:59:37.1142428Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=44e043"
+test	Initialize containers	2026-04-19T02:59:37.1297315Z ##[command]/usr/bin/docker network prune --force --filter "label=44e043"
+test	Initialize containers	2026-04-19T02:59:37.1440110Z ##[endgroup]
+test	Initialize containers	2026-04-19T02:59:37.1441104Z ##[group]Create local container network
+test	Initialize containers	2026-04-19T02:59:37.1451916Z ##[command]/usr/bin/docker network create --label 44e043 github_network_6fa1a4018ca544fbbfcc58c5998bd8cc
+test	Initialize containers	2026-04-19T02:59:37.2029946Z 6831262345f306b1d7903e89f1d20740836d28ce80fece4c476841a9ca28b75e
+test	Initialize containers	2026-04-19T02:59:37.2046541Z ##[endgroup]
+test	Initialize containers	2026-04-19T02:59:37.2073035Z ##[group]Starting postgres service container
+test	Initialize containers	2026-04-19T02:59:37.2095737Z ##[command]/usr/bin/docker pull postgres:16
+test	Initialize containers	2026-04-19T02:59:37.8933785Z 16: Pulling from library/postgres
+test	Initialize containers	2026-04-19T02:59:38.1051130Z 5435b2dcdf5c: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1052307Z baf06005f9e9: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1053768Z 7cec73702fc3: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1054443Z fecac0093525: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1054908Z eb4cdb4c077a: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1055441Z f4deb76cb231: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1055838Z 11c182969642: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1056211Z 2140605cc9e3: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1056564Z 733634c09269: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1056899Z 98d103c7f97a: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1057260Z daf100733f51: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1057677Z 3f502c7bb1d5: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1058075Z dc376cda597b: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1058441Z 9be7ce32394f: Pulling fs layer
+test	Initialize containers	2026-04-19T02:59:38.1058775Z eb4cdb4c077a: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1059113Z f4deb76cb231: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1059426Z 11c182969642: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1059786Z 98d103c7f97a: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1060165Z 2140605cc9e3: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1060506Z 733634c09269: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1060822Z daf100733f51: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1061130Z dc376cda597b: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1061444Z 3f502c7bb1d5: Waiting
+test	Initialize containers	2026-04-19T02:59:38.1061761Z 9be7ce32394f: Waiting
+test	Initialize containers	2026-04-19T02:59:38.5098590Z baf06005f9e9: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:38.5099975Z baf06005f9e9: Download complete
+test	Initialize containers	2026-04-19T02:59:38.6859353Z 7cec73702fc3: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:38.6861041Z 7cec73702fc3: Download complete
+test	Initialize containers	2026-04-19T02:59:38.7977585Z 5435b2dcdf5c: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:38.7978652Z 5435b2dcdf5c: Download complete
+test	Initialize containers	2026-04-19T02:59:38.8706582Z fecac0093525: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:38.8707212Z fecac0093525: Download complete
+test	Initialize containers	2026-04-19T02:59:39.1247195Z 11c182969642: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:39.1248087Z 11c182969642: Download complete
+test	Initialize containers	2026-04-19T02:59:39.1429405Z eb4cdb4c077a: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:39.1430073Z eb4cdb4c077a: Download complete
+test	Initialize containers	2026-04-19T02:59:39.1593080Z f4deb76cb231: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:39.1593700Z f4deb76cb231: Download complete
+test	Initialize containers	2026-04-19T02:59:39.3823249Z 2140605cc9e3: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:39.3824380Z 2140605cc9e3: Download complete
+test	Initialize containers	2026-04-19T02:59:39.4246152Z 98d103c7f97a: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:39.4247326Z 98d103c7f97a: Download complete
+test	Initialize containers	2026-04-19T02:59:39.6373488Z daf100733f51: Download complete
+test	Initialize containers	2026-04-19T02:59:39.6859954Z 3f502c7bb1d5: Download complete
+test	Initialize containers	2026-04-19T02:59:39.7841453Z 5435b2dcdf5c: Pull complete
+test	Initialize containers	2026-04-19T02:59:39.8806474Z dc376cda597b: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:39.8806971Z dc376cda597b: Download complete
+test	Initialize containers	2026-04-19T02:59:39.9458000Z 9be7ce32394f: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:39.9458516Z 9be7ce32394f: Download complete
+test	Initialize containers	2026-04-19T02:59:40.0920574Z baf06005f9e9: Pull complete
+test	Initialize containers	2026-04-19T02:59:41.1384268Z 7cec73702fc3: Pull complete
+test	Initialize containers	2026-04-19T02:59:41.1784540Z fecac0093525: Pull complete
+test	Initialize containers	2026-04-19T02:59:41.4896311Z eb4cdb4c077a: Pull complete
+test	Initialize containers	2026-04-19T02:59:41.5724922Z f4deb76cb231: Pull complete
+test	Initialize containers	2026-04-19T02:59:41.5825641Z 11c182969642: Pull complete
+test	Initialize containers	2026-04-19T02:59:41.5922943Z 2140605cc9e3: Pull complete
+test	Initialize containers	2026-04-19T02:59:42.0913727Z 733634c09269: Verifying Checksum
+test	Initialize containers	2026-04-19T02:59:42.0914189Z 733634c09269: Download complete
+test	Initialize containers	2026-04-19T02:59:45.1028364Z 733634c09269: Pull complete
+test	Initialize containers	2026-04-19T02:59:45.1163683Z 98d103c7f97a: Pull complete
+test	Initialize containers	2026-04-19T02:59:45.1256460Z daf100733f51: Pull complete
+test	Initialize containers	2026-04-19T02:59:45.1374484Z 3f502c7bb1d5: Pull complete
+test	Initialize containers	2026-04-19T02:59:45.1477856Z dc376cda597b: Pull complete
+test	Initialize containers	2026-04-19T02:59:45.1580900Z 9be7ce32394f: Pull complete
+test	Initialize containers	2026-04-19T02:59:45.1626145Z Digest: sha256:5a65324fe84dc41709ff914e90b07f3e2f577073ed27bf917d4873aca0c9ec51
+test	Initialize containers	2026-04-19T02:59:45.1648327Z Status: Downloaded newer image for postgres:16
+test	Initialize containers	2026-04-19T02:59:45.1657715Z docker.io/library/postgres:16
+test	Initialize containers	2026-04-19T02:59:45.1720105Z ##[command]/usr/bin/docker create --name 6a4103da9cb14698887dca43fff64e25_postgres16_3e1f56 --label 44e043 --network github_network_6fa1a4018ca544fbbfcc58c5998bd8cc --network-alias postgres -p 5432:5432 --health-cmd="pg_isready -U blueflow" --health-interval=10s --health-timeout=5s --health-retries=5 -e "POSTGRES_USER=blueflow" -e "POSTGRES_PASSWORD=blueflow" -e "POSTGRES_DB=blueflow" -e GITHUB_ACTIONS=true -e CI=true postgres:16
+test	Initialize containers	2026-04-19T02:59:45.1980870Z de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:45.2003245Z ##[command]/usr/bin/docker start de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:45.3759969Z de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:45.3805585Z ##[command]/usr/bin/docker ps --all --filter id=de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+test	Initialize containers	2026-04-19T02:59:45.3943048Z de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03 Up Less than a second (health: starting)
+test	Initialize containers	2026-04-19T02:59:45.3964505Z ##[command]/usr/bin/docker port de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:45.4106815Z 5432/tcp -> 0.0.0.0:5432
+test	Initialize containers	2026-04-19T02:59:45.4107607Z 5432/tcp -> [::]:5432
+test	Initialize containers	2026-04-19T02:59:45.4163369Z ##[endgroup]
+test	Initialize containers	2026-04-19T02:59:45.4175819Z ##[group]Waiting for all services to be ready
+test	Initialize containers	2026-04-19T02:59:45.4193777Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:45.4344053Z starting
+test	Initialize containers	2026-04-19T02:59:45.4367374Z postgres service is starting, waiting 2 seconds before checking again.
+test	Initialize containers	2026-04-19T02:59:47.4373117Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:47.4501947Z starting
+test	Initialize containers	2026-04-19T02:59:47.4514379Z postgres service is starting, waiting 4 seconds before checking again.
+test	Initialize containers	2026-04-19T02:59:51.7091471Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:51.7220470Z starting
+test	Initialize containers	2026-04-19T02:59:51.7232695Z postgres service is starting, waiting 6 seconds before checking again.
+test	Initialize containers	2026-04-19T02:59:58.6314762Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Initialize containers	2026-04-19T02:59:58.6436859Z healthy
+test	Initialize containers	2026-04-19T02:59:58.6454877Z postgres service is healthy.
+test	Initialize containers	2026-04-19T02:59:58.6455948Z ##[endgroup]
+test	Run actions/checkout@v6	﻿2026-04-19T02:59:58.6799136Z ##[group]Run actions/checkout@v6
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6799622Z with:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6799824Z   repository: virtalabs/blueflow
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6800242Z   token: ***
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6800435Z   ssh-strict: true
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6800623Z   ssh-user: git
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6800810Z   persist-credentials: true
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6801044Z   clean: true
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6801227Z   sparse-checkout-cone-mode: true
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6801459Z   fetch-depth: 1
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6801632Z   fetch-tags: false
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6801818Z   show-progress: true
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6801997Z   lfs: false
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6802169Z   submodules: false
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6802352Z   set-safe-directory: true
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6802715Z env:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6803074Z   DATABASE_URL: ***localhost:5432/blueflow
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6803369Z   DJANGO_SETTINGS_MODULE: project.settings.test
+test	Run actions/checkout@v6	2026-04-19T02:59:58.6803629Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7754386Z Syncing repository: virtalabs/blueflow
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7755983Z ##[group]Getting Git version info
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7756353Z Working directory is '/home/runner/work/blueflow/blueflow'
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7756880Z [command]/usr/bin/git version
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7792741Z git version 2.53.0
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7815203Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7829462Z Temporarily overriding HOME='/home/runner/work/_temp/2f9b6cac-907e-4d71-9b9c-978eaf5bc66f' before making global git config changes
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7830531Z Adding repository directory to the temporary git global config as a safe directory
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7834753Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/blueflow/blueflow
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7872925Z Deleting the contents of '/home/runner/work/blueflow/blueflow'
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7877566Z ##[group]Initializing the repository
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7882557Z [command]/usr/bin/git init /home/runner/work/blueflow/blueflow
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7965591Z hint: Using 'master' as the name for the initial branch. This default branch name
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7966414Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7966890Z hint: to use in all of your new repositories, which will suppress this warning,
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7967233Z hint: call:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7967463Z hint:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7967838Z hint: 	git config --global init.defaultBranch <name>
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7968317Z hint:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7968733Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7969478Z hint: 'development'. The just-created branch can be renamed via this command:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7970045Z hint:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7970348Z hint: 	git branch -m <name>
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7970670Z hint:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7971099Z hint: Disable this message with "git config set advice.defaultBranchName false"
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7971862Z Initialized empty Git repository in /home/runner/work/blueflow/blueflow/.git/
+test	Run actions/checkout@v6	2026-04-19T02:59:58.7978161Z [command]/usr/bin/git remote add origin https://github.com/virtalabs/blueflow
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8010247Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8010809Z ##[group]Disabling automatic garbage collection
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8014862Z [command]/usr/bin/git config --local gc.auto 0
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8042793Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8043143Z ##[group]Setting up auth
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8044660Z Removing SSH command configuration
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8051097Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8082689Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8376312Z Removing HTTP extra header
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8381928Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8413634Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8640855Z Removing includeIf entries pointing to credentials config files
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8648131Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8682382Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8925636Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8967173Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/blueflow/blueflow/.git.path /home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Run actions/checkout@v6	2026-04-19T02:59:58.8999556Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/blueflow/blueflow/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Run actions/checkout@v6	2026-04-19T02:59:58.9031137Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Run actions/checkout@v6	2026-04-19T02:59:58.9063014Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Run actions/checkout@v6	2026-04-19T02:59:58.9091522Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:58.9091922Z ##[group]Fetching the repository
+test	Run actions/checkout@v6	2026-04-19T02:59:58.9100353Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3d98cb3ed1acba2ee3dad92e5d70900e88c2de48:refs/remotes/pull/104/merge
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4770923Z From https://github.com/virtalabs/blueflow
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4771596Z  * [new ref]         3d98cb3ed1acba2ee3dad92e5d70900e88c2de48 -> pull/104/merge
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4803003Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4803560Z ##[group]Determining the checkout info
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4804190Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4809954Z [command]/usr/bin/git sparse-checkout disable
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4850443Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4878692Z ##[group]Checking out the ref
+test	Run actions/checkout@v6	2026-04-19T02:59:59.4882226Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/104/merge
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5036055Z Note: switching to 'refs/remotes/pull/104/merge'.
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5036497Z 
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5036779Z You are in 'detached HEAD' state. You can look around, make experimental
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5037463Z changes and commit them, and you can discard any commits you make in this
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5038161Z state without impacting any branches by switching back to a branch.
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5038587Z 
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5038885Z If you want to create a new branch to retain commits you create, you may
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5039564Z do so (now or later) by using -c with the switch command. Example:
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5039944Z 
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5040087Z   git switch -c <new-branch-name>
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5040333Z 
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5040458Z Or undo this operation with:
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5040678Z 
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5040807Z   git switch -
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5040952Z 
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5041149Z Turn off this advice by setting config variable advice.detachedHead to false
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5041427Z 
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5041749Z HEAD is now at 3d98cb3 Merge f1d7044b46e8b93724d57d0635b2f0ef5a89d87b into 5adb45aece2ab080219154c7755907658a42283f
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5043835Z ##[endgroup]
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5083046Z [command]/usr/bin/git log -1 --format=%H
+test	Run actions/checkout@v6	2026-04-19T02:59:59.5108838Z 3d98cb3ed1acba2ee3dad92e5d70900e88c2de48
+test	Run astral-sh/setup-uv@v7	﻿2026-04-19T02:59:59.5345510Z ##[group]Run astral-sh/setup-uv@v7
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5345793Z with:
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5345986Z   activate-environment: false
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5346280Z   working-directory: /home/runner/work/blueflow/blueflow
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5346727Z   github-token: ***
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5346930Z   enable-cache: auto
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5347454Z   cache-dependency-glob: **/*requirements*.txt
+test	Run astral-sh/setup-uv@v7	**/*requirements*.in
+test	Run astral-sh/setup-uv@v7	**/*constraints*.txt
+test	Run astral-sh/setup-uv@v7	**/*constraints*.in
+test	Run astral-sh/setup-uv@v7	**/pyproject.toml
+test	Run astral-sh/setup-uv@v7	**/uv.lock
+test	Run astral-sh/setup-uv@v7	**/*.py.lock
+test	Run astral-sh/setup-uv@v7	
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5348045Z   restore-cache: true
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5348253Z   save-cache: true
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5348447Z   prune-cache: true
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5348631Z   cache-python: false
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5348831Z   ignore-nothing-to-cache: false
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5349077Z   ignore-empty-workdir: false
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5349303Z   add-problem-matchers: true
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5349537Z   resolution-strategy: highest
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5349742Z env:
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5350132Z   DATABASE_URL: ***localhost:5432/blueflow
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5350454Z   DJANGO_SETTINGS_MODULE: project.settings.test
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.5350720Z ##[endgroup]
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.6991407Z Trying to find version for uv in: /home/runner/work/blueflow/blueflow/uv.toml
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.6991944Z Could not find file: /home/runner/work/blueflow/blueflow/uv.toml
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.6992426Z Trying to find version for uv in: /home/runner/work/blueflow/blueflow/pyproject.toml
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.6999725Z Could not determine uv version from uv.toml or pyproject.toml. Falling back to latest.
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.7002377Z Fetching version data from https://raw.githubusercontent.com/astral-sh/versions/main/v1/uv.ndjson ...
+test	Run astral-sh/setup-uv@v7	2026-04-19T02:59:59.8360115Z Downloading uv from "https://releases.astral.sh/github/uv/releases/download/0.11.7/uv-x86_64-unknown-linux-gnu.tar.gz" ...
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.2332140Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/d50384cc-c160-49a5-96ce-7db33602a43e -f /home/runner/work/_temp/d8785c42-f563-403c-9dd8-86e6d2570433
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.7332747Z Added /home/runner/.local/bin to the path
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.7337213Z Added /opt/hostedtoolcache/uv/0.11.7/x86_64 to the path
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.7338564Z Set UV_PYTHON_INSTALL_DIR to /home/runner/work/_temp/uv-python-dir
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.7339214Z Added /home/runner/work/_temp/uv-python-dir to the path
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.7366239Z Set UV_CACHE_DIR to /home/runner/work/_temp/setup-uv-cache
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.7366857Z Successfully installed uv version 0.11.7
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.8334167Z Searching files using cache dependency glob: /home/runner/work/blueflow/blueflow/**/*requirements*.txt,/home/runner/work/blueflow/blueflow/**/*requirements*.in,/home/runner/work/blueflow/blueflow/**/*constraints*.txt,/home/runner/work/blueflow/blueflow/**/*constraints*.in,/home/runner/work/blueflow/blueflow/**/pyproject.toml,/home/runner/work/blueflow/blueflow/**/uv.lock,/home/runner/work/blueflow/blueflow/**/*.py.lock
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.8589898Z /home/runner/work/blueflow/blueflow/pyproject.toml
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.8629657Z /home/runner/work/blueflow/blueflow/uv.lock
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.8638126Z Found 2 files to hash.
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:00.8706948Z Trying to restore cache from GitHub Actions cache with key: setup-uv-2-x86_64-unknown-linux-gnu-ubuntu-24.04-3.12.3-pruned-9775fb783e0f139d1e7bd5222f64ae967cfa3f25f92679e7774b0b4c987f27e6
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:01.0363171Z Cache hit for: setup-uv-2-x86_64-unknown-linux-gnu-ubuntu-24.04-3.12.3-pruned-9775fb783e0f139d1e7bd5222f64ae967cfa3f25f92679e7774b0b4c987f27e6
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:01.6233962Z Received 244524 of 244524 (100.0%), 0.6 MBs/sec
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:01.6234528Z Cache Size: ~0 MB (244524 B)
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:01.6257815Z [command]/usr/bin/tar -xf /home/runner/work/_temp/85c48a4f-48ec-48d5-ae8e-deefa3e9b617/cache.tzst -P -C /home/runner/work/blueflow/blueflow --use-compress-program unzstd
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:01.6353884Z Cache restored successfully
+test	Run astral-sh/setup-uv@v7	2026-04-19T03:00:01.6358672Z cache restored from GitHub Actions cache with key: setup-uv-2-x86_64-unknown-linux-gnu-ubuntu-24.04-3.12.3-pruned-9775fb783e0f139d1e7bd5222f64ae967cfa3f25f92679e7774b0b4c987f27e6
+test	Run actions/setup-python@v6	﻿2026-04-19T03:00:01.7044116Z ##[group]Run actions/setup-python@v6
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7044396Z with:
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7044586Z   python-version: 3.12
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7044801Z   check-latest: false
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7045331Z   token: ***
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7045528Z   update-environment: true
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7045777Z   allow-prereleases: false
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7045992Z   freethreaded: false
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7046185Z env:
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7046533Z   DATABASE_URL: ***localhost:5432/blueflow
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7046838Z   DJANGO_SETTINGS_MODULE: project.settings.test
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7047198Z   UV_PYTHON_INSTALL_DIR: /home/runner/work/_temp/uv-python-dir
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7047559Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.7047835Z ##[endgroup]
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.8313836Z ##[group]Installed versions
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.8405868Z Successfully set up CPython (3.12.13)
+test	Run actions/setup-python@v6	2026-04-19T03:00:01.8406563Z ##[endgroup]
+test	Install dependencies	﻿2026-04-19T03:00:01.8523572Z ##[group]Run uv sync --all-extras
+test	Install dependencies	2026-04-19T03:00:01.8523944Z [36;1muv sync --all-extras[0m
+test	Install dependencies	2026-04-19T03:00:01.8560443Z shell: /usr/bin/bash -e {0}
+test	Install dependencies	2026-04-19T03:00:01.8560702Z env:
+test	Install dependencies	2026-04-19T03:00:01.8561228Z   DATABASE_URL: ***localhost:5432/blueflow
+test	Install dependencies	2026-04-19T03:00:01.8561540Z   DJANGO_SETTINGS_MODULE: project.settings.test
+test	Install dependencies	2026-04-19T03:00:01.8562115Z   UV_PYTHON_INSTALL_DIR: /home/runner/work/_temp/uv-python-dir
+test	Install dependencies	2026-04-19T03:00:01.8562482Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+test	Install dependencies	2026-04-19T03:00:01.8562854Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Install dependencies	2026-04-19T03:00:01.8563275Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+test	Install dependencies	2026-04-19T03:00:01.8563693Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Install dependencies	2026-04-19T03:00:01.8564059Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Install dependencies	2026-04-19T03:00:01.8564408Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Install dependencies	2026-04-19T03:00:01.8564765Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+test	Install dependencies	2026-04-19T03:00:01.8565325Z ##[endgroup]
+test	Install dependencies	2026-04-19T03:00:01.9082663Z Using CPython 3.12.13 interpreter at: /opt/hostedtoolcache/Python/3.12.13/x64/bin/python3
+test	Install dependencies	2026-04-19T03:00:01.9083311Z Creating virtual environment at: .venv
+test	Install dependencies	2026-04-19T03:00:01.9093560Z Resolved 85 packages in 0.85ms
+test	Install dependencies	2026-04-19T03:00:01.9229588Z    Building blueflow @ file:///home/runner/work/blueflow/blueflow
+test	Install dependencies	2026-04-19T03:00:02.0265442Z Downloading virtualenv (5.6MiB)
+test	Install dependencies	2026-04-19T03:00:02.0617136Z Downloading djangorestframework (1.0MiB)
+test	Install dependencies	2026-04-19T03:00:02.0629294Z Downloading netaddr (2.2MiB)
+test	Install dependencies	2026-04-19T03:00:02.0632165Z Downloading pygments (1.2MiB)
+test	Install dependencies	2026-04-19T03:00:02.0640543Z Downloading ruff (10.7MiB)
+test	Install dependencies	2026-04-19T03:00:02.0647689Z Downloading django (7.9MiB)
+test	Install dependencies	2026-04-19T03:00:02.0652580Z Downloading psycopg-binary (4.9MiB)
+test	Install dependencies	2026-04-19T03:00:02.0654378Z Downloading mypy (13.0MiB)
+test	Install dependencies	2026-04-19T03:00:02.5420320Z  Downloaded netaddr
+test	Install dependencies	2026-04-19T03:00:02.5837229Z  Downloaded djangorestframework
+test	Install dependencies	2026-04-19T03:00:02.6417561Z  Downloaded pygments
+test	Install dependencies	2026-04-19T03:00:02.6676647Z  Downloaded psycopg-binary
+test	Install dependencies	2026-04-19T03:00:02.6964149Z  Downloaded virtualenv
+test	Install dependencies	2026-04-19T03:00:02.7786465Z  Downloaded ruff
+test	Install dependencies	2026-04-19T03:00:03.0639369Z  Downloaded mypy
+test	Install dependencies	2026-04-19T03:00:03.3819344Z  Downloaded django
+test	Install dependencies	2026-04-19T03:00:03.8081860Z       Built blueflow @ file:///home/runner/work/blueflow/blueflow
+test	Install dependencies	2026-04-19T03:00:03.8090372Z Prepared 84 packages in 1.89s
+test	Install dependencies	2026-04-19T03:00:04.0376645Z Installed 84 packages in 228ms
+test	Install dependencies	2026-04-19T03:00:04.0391843Z  + amqp==5.3.1
+test	Install dependencies	2026-04-19T03:00:04.0392141Z  + asgiref==3.11.1
+test	Install dependencies	2026-04-19T03:00:04.0392425Z  + attrs==25.4.0
+test	Install dependencies	2026-04-19T03:00:04.0392694Z  + billiard==4.2.4
+test	Install dependencies	2026-04-19T03:00:04.0393136Z  + blueflow==0.1.0 (from file:///home/runner/work/blueflow/blueflow)
+test	Install dependencies	2026-04-19T03:00:04.0393650Z  + celery==5.4.0
+test	Install dependencies	2026-04-19T03:00:04.0393917Z  + certifi==2026.1.4
+test	Install dependencies	2026-04-19T03:00:04.0394209Z  + cfgv==3.5.0
+test	Install dependencies	2026-04-19T03:00:04.0394508Z  + charset-normalizer==3.4.4
+test	Install dependencies	2026-04-19T03:00:04.0394841Z  + click==8.3.1
+test	Install dependencies	2026-04-19T03:00:04.0395345Z  + click-didyoumean==0.3.1
+test	Install dependencies	2026-04-19T03:00:04.0395690Z  + click-plugins==1.1.1.2
+test	Install dependencies	2026-04-19T03:00:04.0396011Z  + click-repl==0.3.0
+test	Install dependencies	2026-04-19T03:00:04.0396325Z  + cron-descriptor==2.0.6
+test	Install dependencies	2026-04-19T03:00:04.0396635Z  + distlib==0.4.0
+test	Install dependencies	2026-04-19T03:00:04.0396922Z  + dj-database-url==3.1.2
+test	Install dependencies	2026-04-19T03:00:04.0397254Z  + django==5.2.11
+test	Install dependencies	2026-04-19T03:00:04.0397545Z  + django-celery-beat==2.8.1
+test	Install dependencies	2026-04-19T03:00:04.0397879Z  + django-filter==25.2
+test	Install dependencies	2026-04-19T03:00:04.0398185Z  + django-jsx==0.5.0
+test	Install dependencies	2026-04-19T03:00:04.0398481Z  + django-netfields==1.3.2
+test	Install dependencies	2026-04-19T03:00:04.0398832Z  + django-simple-history==3.11.0
+test	Install dependencies	2026-04-19T03:00:04.0399182Z  + django-stubs==5.2.9
+test	Install dependencies	2026-04-19T03:00:04.0399494Z  + django-stubs-ext==5.2.9
+test	Install dependencies	2026-04-19T03:00:04.0399836Z  + django-test-migrations==1.5.0
+test	Install dependencies	2026-04-19T03:00:04.0400199Z  + django-timezone-field==7.2.1
+test	Install dependencies	2026-04-19T03:00:04.0400552Z  + django-waffle==5.0.0
+test	Install dependencies	2026-04-19T03:00:04.0400883Z  + djangorestframework==3.16.1
+test	Install dependencies	2026-04-19T03:00:04.0401243Z  + djangorestframework-csv==3.0.2
+test	Install dependencies	2026-04-19T03:00:04.0401990Z  + drf-spectacular==0.29.0
+test	Install dependencies	2026-04-19T03:00:04.0402314Z  + execnet==2.1.2
+test	Install dependencies	2026-04-19T03:00:04.0402580Z  + filelock==3.28.0
+test	Install dependencies	2026-04-19T03:00:04.0402862Z  + freezegun==1.5.5
+test	Install dependencies	2026-04-19T03:00:04.0403142Z  + gunicorn==25.1.0
+test	Install dependencies	2026-04-19T03:00:04.0403394Z  + hl7==0.4.5
+test	Install dependencies	2026-04-19T03:00:04.0403851Z  + identify==2.6.18
+test	Install dependencies	2026-04-19T03:00:04.0404125Z  + idna==3.11
+test	Install dependencies	2026-04-19T03:00:04.0404382Z  + inflection==0.5.1
+test	Install dependencies	2026-04-19T03:00:04.0404673Z  + iniconfig==2.3.0
+test	Install dependencies	2026-04-19T03:00:04.0404961Z  + jsonschema==4.26.0
+test	Install dependencies	2026-04-19T03:00:04.0405470Z  + jsonschema-specifications==2025.9.1
+test	Install dependencies	2026-04-19T03:00:04.0405846Z  + kombu==5.6.2
+test	Install dependencies	2026-04-19T03:00:04.0406108Z  + librt==0.8.1
+test	Install dependencies	2026-04-19T03:00:04.0406382Z  + model-bakery==1.23.3
+test	Install dependencies	2026-04-19T03:00:04.0406671Z  + mypy==1.19.1
+test	Install dependencies	2026-04-19T03:00:04.0406949Z  + mypy-extensions==1.1.0
+test	Install dependencies	2026-04-19T03:00:04.0407341Z  + netaddr==1.3.0
+test	Install dependencies	2026-04-19T03:00:04.0407522Z  + nodeenv==1.10.0
+test	Install dependencies	2026-04-19T03:00:04.0407707Z  + packaging==26.0
+test	Install dependencies	2026-04-19T03:00:04.0407905Z  + pathspec==1.0.4
+test	Install dependencies	2026-04-19T03:00:04.0408089Z  + platformdirs==4.9.6
+test	Install dependencies	2026-04-19T03:00:04.0408281Z  + pluggy==1.6.0
+test	Install dependencies	2026-04-19T03:00:04.0408467Z  + pre-commit==4.5.1
+test	Install dependencies	2026-04-19T03:00:04.0408679Z  + prompt-toolkit==3.0.52
+test	Install dependencies	2026-04-19T03:00:04.0408884Z  + psycopg==3.3.3
+test	Install dependencies	2026-04-19T03:00:04.0409080Z  + psycopg-binary==3.3.3
+test	Install dependencies	2026-04-19T03:00:04.0409294Z  + pygments==2.19.2
+test	Install dependencies	2026-04-19T03:00:04.0409473Z  + pytest==9.0.2
+test	Install dependencies	2026-04-19T03:00:04.0409665Z  + pytest-django==4.12.0
+test	Install dependencies	2026-04-19T03:00:04.0409879Z  + pytest-json-report==1.5.0
+test	Install dependencies	2026-04-19T03:00:04.0410103Z  + pytest-metadata==3.1.1
+test	Install dependencies	2026-04-19T03:00:04.0410313Z  + pytest-xdist==3.8.0
+test	Install dependencies	2026-04-19T03:00:04.0410614Z  + python-crontab==3.3.0
+test	Install dependencies	2026-04-19T03:00:04.0410881Z  + python-dateutil==2.9.0.post0
+test	Install dependencies	2026-04-19T03:00:04.0411122Z  + python-discovery==1.2.2
+test	Install dependencies	2026-04-19T03:00:04.0411351Z  + python-json-logger==4.0.0
+test	Install dependencies	2026-04-19T03:00:04.0411579Z  + python-nmap==0.7.1
+test	Install dependencies	2026-04-19T03:00:04.0411773Z  + pyyaml==6.0.3
+test	Install dependencies	2026-04-19T03:00:04.0412010Z  + referencing==0.37.0
+test	Install dependencies	2026-04-19T03:00:04.0412229Z  + requests==2.32.5
+test	Install dependencies	2026-04-19T03:00:04.0412414Z  + rpds-py==0.30.0
+test	Install dependencies	2026-04-19T03:00:04.0412601Z  + ruff==0.15.4
+test	Install dependencies	2026-04-19T03:00:04.0412783Z  + sh==2.2.2
+test	Install dependencies	2026-04-19T03:00:04.0412956Z  + six==1.17.0
+test	Install dependencies	2026-04-19T03:00:04.0413131Z  + sqlparse==0.5.5
+test	Install dependencies	2026-04-19T03:00:04.0413338Z  + types-pyyaml==6.0.12.20250915
+test	Install dependencies	2026-04-19T03:00:04.0413590Z  + typing-extensions==4.15.0
+test	Install dependencies	2026-04-19T03:00:04.0413821Z  + tzdata==2025.3
+test	Install dependencies	2026-04-19T03:00:04.0414006Z  + uritemplate==4.2.0
+test	Install dependencies	2026-04-19T03:00:04.0414204Z  + urllib3==2.6.3
+test	Install dependencies	2026-04-19T03:00:04.0414370Z  + vine==5.1.0
+test	Install dependencies	2026-04-19T03:00:04.0414548Z  + virtualenv==21.2.4
+test	Install dependencies	2026-04-19T03:00:04.0414732Z  + wcwidth==0.6.0
+test	Install dependencies	2026-04-19T03:00:04.0414903Z  + whitenoise==6.12.0
+test	Run migrations	﻿2026-04-19T03:00:04.0579700Z ##[group]Run uv run python project/manage.py migrate --noinput
+test	Run migrations	2026-04-19T03:00:04.0580169Z [36;1muv run python project/manage.py migrate --noinput[0m
+test	Run migrations	2026-04-19T03:00:04.0603562Z shell: /usr/bin/bash -e {0}
+test	Run migrations	2026-04-19T03:00:04.0603808Z env:
+test	Run migrations	2026-04-19T03:00:04.0604498Z   DATABASE_URL: ***localhost:5432/blueflow
+test	Run migrations	2026-04-19T03:00:04.0604813Z   DJANGO_SETTINGS_MODULE: project.settings.test
+test	Run migrations	2026-04-19T03:00:04.0605416Z   UV_PYTHON_INSTALL_DIR: /home/runner/work/_temp/uv-python-dir
+test	Run migrations	2026-04-19T03:00:04.0605784Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+test	Run migrations	2026-04-19T03:00:04.0606142Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run migrations	2026-04-19T03:00:04.0606540Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+test	Run migrations	2026-04-19T03:00:04.0606932Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run migrations	2026-04-19T03:00:04.0607288Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run migrations	2026-04-19T03:00:04.0607635Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run migrations	2026-04-19T03:00:04.0608030Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+test	Run migrations	2026-04-19T03:00:04.0608336Z ##[endgroup]
+test	Run migrations	2026-04-19T03:00:07.1938882Z Operations to perform:
+test	Run migrations	2026-04-19T03:00:07.1939513Z   Apply all migrations: admin, auth, authtoken, blueflow, contenttypes, django_celery_beat, sessions, waffle
+test	Run migrations	2026-04-19T03:00:07.1940008Z Running migrations:
+test	Run migrations	2026-04-19T03:00:07.2029128Z   Applying contenttypes.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:07.2374193Z   Applying auth.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:07.2491883Z   Applying admin.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:07.2546469Z   Applying admin.0002_logentry_remove_auto_add... OK
+test	Run migrations	2026-04-19T03:00:07.2598278Z   Applying admin.0003_logentry_add_action_flag_choices... OK
+test	Run migrations	2026-04-19T03:00:07.2709529Z   Applying contenttypes.0002_remove_content_type_name... OK
+test	Run migrations	2026-04-19T03:00:07.2766440Z   Applying auth.0002_alter_permission_name_max_length... OK
+test	Run migrations	2026-04-19T03:00:07.2838162Z   Applying auth.0003_alter_user_email_max_length... OK
+test	Run migrations	2026-04-19T03:00:07.2888050Z   Applying auth.0004_alter_user_username_opts... OK
+test	Run migrations	2026-04-19T03:00:07.2950093Z   Applying auth.0005_alter_user_last_login_null... OK
+test	Run migrations	2026-04-19T03:00:07.2959334Z   Applying auth.0006_require_contenttypes_0002... OK
+test	Run migrations	2026-04-19T03:00:07.3011758Z   Applying auth.0007_alter_validators_add_error_messages... OK
+test	Run migrations	2026-04-19T03:00:07.3083735Z   Applying auth.0008_alter_user_username_max_length... OK
+test	Run migrations	2026-04-19T03:00:07.3140384Z   Applying auth.0009_alter_user_last_name_max_length... OK
+test	Run migrations	2026-04-19T03:00:07.3202417Z   Applying auth.0010_alter_group_name_max_length... OK
+test	Run migrations	2026-04-19T03:00:07.3251306Z   Applying auth.0011_update_proxy_permissions... OK
+test	Run migrations	2026-04-19T03:00:07.3305008Z   Applying auth.0012_alter_user_first_name_max_length... OK
+test	Run migrations	2026-04-19T03:00:07.3417119Z   Applying authtoken.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:07.4049981Z   Applying authtoken.0002_auto_20160226_1747... OK
+test	Run migrations	2026-04-19T03:00:07.4066733Z   Applying authtoken.0003_tokenproxy... OK
+test	Run migrations	2026-04-19T03:00:07.4099017Z   Applying authtoken.0004_alter_tokenproxy_options... OK
+test	Run migrations	2026-04-19T03:00:07.8279847Z   Applying blueflow.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:07.9649627Z   Applying blueflow.0002_remove_alert_connector_and_more... OK
+test	Run migrations	2026-04-19T03:00:07.9695536Z   Applying blueflow.0003_viperwebhookjob... OK
+test	Run migrations	2026-04-19T03:00:07.9877040Z   Applying django_celery_beat.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:07.9967278Z   Applying django_celery_beat.0002_auto_20161118_0346... OK
+test	Run migrations	2026-04-19T03:00:08.0028192Z   Applying django_celery_beat.0003_auto_20161209_0049... OK
+test	Run migrations	2026-04-19T03:00:08.0059719Z   Applying django_celery_beat.0004_auto_20170221_0000... OK
+test	Run migrations	2026-04-19T03:00:08.0093392Z   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+test	Run migrations	2026-04-19T03:00:08.0417151Z   Applying django_celery_beat.0006_auto_20180322_0932... OK
+test	Run migrations	2026-04-19T03:00:08.0598864Z   Applying django_celery_beat.0007_auto_20180521_0826... OK
+test	Run migrations	2026-04-19T03:00:08.1660537Z   Applying django_celery_beat.0008_auto_20180914_1922... OK
+test	Run migrations	2026-04-19T03:00:08.1864656Z   Applying django_celery_beat.0006_auto_20180210_1226... OK
+test	Run migrations	2026-04-19T03:00:08.1954371Z   Applying django_celery_beat.0006_periodictask_priority... OK
+test	Run migrations	2026-04-19T03:00:08.2057477Z   Applying django_celery_beat.0009_periodictask_headers... OK
+test	Run migrations	2026-04-19T03:00:08.4056866Z   Applying django_celery_beat.0010_auto_20190429_0326... OK
+test	Run migrations	2026-04-19T03:00:08.4219661Z   Applying django_celery_beat.0011_auto_20190508_0153... OK
+test	Run migrations	2026-04-19T03:00:08.4317789Z   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+test	Run migrations	2026-04-19T03:00:08.4427610Z   Applying django_celery_beat.0013_auto_20200609_0727... OK
+test	Run migrations	2026-04-19T03:00:08.4471619Z   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+test	Run migrations	2026-04-19T03:00:08.4509899Z   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+test	Run migrations	2026-04-19T03:00:08.4619828Z   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+test	Run migrations	2026-04-19T03:00:08.4702845Z   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+test	Run migrations	2026-04-19T03:00:08.4783211Z   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+test	Run migrations	2026-04-19T03:00:08.4805691Z   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+test	Run migrations	2026-04-19T03:00:08.4865649Z   Applying sessions.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:08.5378790Z   Applying waffle.0001_initial... OK
+test	Run migrations	2026-04-19T03:00:08.5407053Z   Applying waffle.0002_auto_20161201_0958... OK
+test	Run migrations	2026-04-19T03:00:08.7467341Z   Applying waffle.0003_update_strings_for_i18n... OK
+test	Run migrations	2026-04-19T03:00:08.9192905Z   Applying waffle.0004_update_everyone_nullbooleanfield... OK
+test	Run tests	﻿2026-04-19T03:00:09.1044488Z ##[group]Run uv run pytest -n auto --tb=no -q --no-header -ra
+test	Run tests	2026-04-19T03:00:09.1045947Z [36;1muv run pytest -n auto --tb=no -q --no-header -ra[0m
+test	Run tests	2026-04-19T03:00:09.1068942Z shell: /usr/bin/bash -e {0}
+test	Run tests	2026-04-19T03:00:09.1069181Z env:
+test	Run tests	2026-04-19T03:00:09.1069613Z   DATABASE_URL: ***localhost:5432/blueflow
+test	Run tests	2026-04-19T03:00:09.1069930Z   DJANGO_SETTINGS_MODULE: project.settings.test
+test	Run tests	2026-04-19T03:00:09.1070303Z   UV_PYTHON_INSTALL_DIR: /home/runner/work/_temp/uv-python-dir
+test	Run tests	2026-04-19T03:00:09.1070665Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+test	Run tests	2026-04-19T03:00:09.1071028Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run tests	2026-04-19T03:00:09.1071431Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+test	Run tests	2026-04-19T03:00:09.1071820Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run tests	2026-04-19T03:00:09.1072166Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run tests	2026-04-19T03:00:09.1072510Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+test	Run tests	2026-04-19T03:00:09.1072915Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+test	Run tests	2026-04-19T03:00:09.1073220Z ##[endgroup]
+test	Run tests	2026-04-19T03:00:15.3016295Z bringing up nodes...
+test	Run tests	2026-04-19T03:00:15.3017163Z bringing up nodes...
+test	Run tests	2026-04-19T03:00:15.3075504Z 
+test	Run tests	2026-04-19T03:00:24.4326230Z ..........FFF..FF..F...F....F.F.F.F.x.F...F.xF...FF.F..FFF..F.FFF..FF... [ 19%]
+test	Run tests	2026-04-19T03:00:33.0874864Z ..F.FFF..F.F.F.F...F...F...FF...........x......FFFEEEEE....x.xx..x...... [ 39%]
+test	Run tests	2026-04-19T03:00:44.6616326Z ...x........x.........F..F..F..s............x.............x.xx.FF.xFF.xF [ 59%]
+test	Run tests	2026-04-19T03:00:53.4556400Z F.FEEFF..F..FF.xFE.F.E.xEF..FE..F.E..FE..FE..F.F.Fx...F.......EE......x. [ 79%]
+test	Run tests	2026-04-19T03:01:03.1118778Z .......xx...x....................xF........x.s..xs.s.................... [ 99%]
+test	Run tests	2026-04-19T03:01:05.9323036Z ..                                                                       [100%]
+test	Run tests	2026-04-19T03:01:05.9323684Z =============================== warnings summary ===============================
+test	Run tests	2026-04-19T03:01:05.9324369Z blueflow/tests/test_asset.py::test_asset_date_range[week-4]
+test	Run tests	2026-04-19T03:01:05.9326047Z   /home/runner/work/blueflow/blueflow/.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField Asset.date_added received a naive datetime (2018-06-23 00:00:00) while time zone support is active.
+test	Run tests	2026-04-19T03:01:05.9327530Z     warnings.warn(
+test	Run tests	2026-04-19T03:01:05.9327711Z 
+test	Run tests	2026-04-19T03:01:05.9327957Z blueflow/tests/test_asset.py::test_asset_date_range[week-4]
+test	Run tests	2026-04-19T03:01:05.9329459Z   /home/runner/work/blueflow/blueflow/.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1612: RuntimeWarning: DateTimeField Asset.date_added received a naive datetime (2018-07-01 00:00:00) while time zone support is active.
+test	Run tests	2026-04-19T03:01:05.9330896Z     warnings.warn(
+test	Run tests	2026-04-19T03:01:05.9331071Z 
+test	Run tests	2026-04-19T03:01:05.9331395Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+test	Run tests	2026-04-19T03:01:05.9332039Z =========================== short test summary info ============================
+test	Run tests	2026-04-19T03:01:05.9332841Z SKIPPED [1] blueflow/tests/test_custom_fields.py:55: This route isn't implemented (and won't be)
+test	Run tests	2026-04-19T03:01:05.9333832Z SKIPPED [1] blueflow/tests/test_upsert.py:100: Blueflow uses AllowAny; auth enforced by consuming product
+test	Run tests	2026-04-19T03:01:05.9334591Z SKIPPED [1] blueflow/tests/test_upsert.py:172: Blueflow uses AllowAny; auth enforced by consuming product
+test	Run tests	2026-04-19T03:01:05.9335517Z SKIPPED [1] blueflow/tests/test_upsert.py:198: django-simple-history update_change_reason filter fails with netfields
+test	Run tests	2026-04-19T03:01:05.9336113Z XFAIL blueflow/tests/test_asset.py::test_asset_date_range[week-4]
+test	Run tests	2026-04-19T03:01:05.9336736Z XFAIL blueflow/tests/test_asset.py::test_api_duplicate_ips_one_spell_exact - not allowed to spell out 'exact' in URL for some reason.
+test	Run tests	2026-04-19T03:01:05.9337564Z XFAIL blueflow/tests/test_custom_field_names.py::test_api_field_name_unauthorized_patch - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9338747Z XFAIL blueflow/tests/test_attachments.py::test_upload_attachment_no_manuf_no_mod
+test	Run tests	2026-04-19T03:01:05.9339427Z XFAIL blueflow/tests/test_custom_field_names.py::test_api_field_name_unauthorized_delete - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9340086Z XFAIL blueflow/tests/test_attachments.py::test_upload_attachment_no_manuf_yes_mod
+test	Run tests	2026-04-19T03:01:05.9340716Z XFAIL blueflow/tests/test_custom_fields.py::test_api_field_unauthorized_post - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9341466Z XFAIL blueflow/tests/test_custom_fields.py::test_api_field_unauthorized_patch - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9342224Z XFAIL blueflow/tests/test_custom_fields.py::test_api_field_unauthorized_delete - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9342961Z XFAIL blueflow/tests/test_custom_field_names.py::test_api_disable_custom_field_name - Not yet implemented
+test	Run tests	2026-04-19T03:01:05.9343591Z XFAIL blueflow/tests/test_custom_field_names.py::test_api_disabled_custom_field - Not yet implemented
+test	Run tests	2026-04-19T03:01:05.9344481Z XFAIL blueflow/tests/test_custom_fields.py::test_api_admin_post_existing - Posting duplicate field value raises IntegrityError; may cause TransactionManagementError
+test	Run tests	2026-04-19T03:01:05.9345692Z XFAIL blueflow/tests/test_custom_fields.py::test_api_admin_post_existing - Posting duplicate field value raises IntegrityError; may cause TransactionManagementError
+test	Run tests	2026-04-19T03:01:05.9346530Z XFAIL blueflow/tests/test_custom_field_names.py::test_api_asset_disabled_custom_field - Not yet implemented
+test	Run tests	2026-04-19T03:01:05.9347256Z XFAIL blueflow/tests/test_custom_field_names.py::test_api_field_name_unauthorized_post - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9348022Z XFAIL blueflow/tests/test_network.py::test_create_named_network_unauth - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9348702Z XFAIL blueflow/tests/test_groups.py::test_create_group_auth - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9349415Z XFAIL blueflow/tests/test_reverse.py::test_reverse_asset_groups - Route /api/assets/1/groups/ doesn't exist (and shouldn't)
+test	Run tests	2026-04-19T03:01:05.9350132Z XFAIL blueflow/tests/test_saved_search.py::test_edit_saved_search - Want to prevent editing but not doing it yet.
+test	Run tests	2026-04-19T03:01:05.9350823Z XFAIL blueflow/tests/test_saved_search.py::test_delete_saved_search - Want to prevent deletion but not doing it yet.
+test	Run tests	2026-04-19T03:01:05.9351594Z XFAIL blueflow/tests/test_network.py::test_create_cidr_network - Create Nwk w/CIDR is not yet implemented, fails with the following error: 
+test	Run tests	2026-04-19T03:01:05.9352056Z 
+test	Run tests	2026-04-19T03:01:05.9352310Z 'ValueError: save() prohibited to prevent data loss due to unsaved related object 'network'. 
+test	Run tests	2026-04-19T03:01:05.9352637Z 
+test	Run tests	2026-04-19T03:01:05.9352733Z Documented in Github issue #1444.
+test	Run tests	2026-04-19T03:01:05.9353247Z XFAIL blueflow/tests/test_network.py::test_patch_bad_cidr - There's a bug in CIDR validation code.  Documented in Github issue #1443.
+test	Run tests	2026-04-19T03:01:05.9353962Z XFAIL blueflow/tests/test_tags.py::test_create_tag_reg_user - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9354605Z XFAIL blueflow/tests/test_tags.py::test_tag_asset_via_api_reg_user - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9355449Z XFAIL blueflow/tests/test_tags.py::test_untag_asset_via_api_reg_user - Blueflow has no role-based write permissions
+test	Run tests	2026-04-19T03:01:05.9356356Z ERROR blueflow/tests/test_csv_byte_order_mark.py::test_process_csv_without_bom - file /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_byte_order_mark.py, line 47
+test	Run tests	2026-04-19T03:01:05.9357045Z   def test_process_csv_without_bom(setup_db):
+test	Run tests	2026-04-19T03:01:05.9357328Z E       fixture 'setup_db' not found
+test	Run tests	2026-04-19T03:01:05.9362300Z >       available fixtures: _auto_db, _dj_autoclear_mailbox, _django_clear_site_cache, _django_db_helper, _django_db_marker, _django_isolate_apps, _django_set_urlconf, _django_setup_unittest, _fail_for_invalid_template_variable, _live_server_helper, _template_string_if_invalid_marker, acme_assets, admin_client, admin_user, asset_edit_client, asset_groups, asset_vulnerabilities, async_client, async_rf, auth_client, biomed_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, celery_app, cfield, cleandb, client, completables, complete_us, custom_field_edit_client, db, django_assert_max_num_queries, django_assert_num_queries, django_capture_on_commit_callbacks, django_db_blocker, django_db_createdb, django_db_keepdb, django_db_modify_db_settings, django_db_modify_db_settings_parallel_suffix, django_db_modify_db_settings_tox_suffix, django_db_modify_db_settings_xdist_suffix, django_db_reset_sequences, django_db_serialized_rollback, django_db_setup, django_db_use_migrations, django_isolated_apps, django_mail_dnsname, django_mail_patch_dns, django_test_environment, django_user_model, django_username_field, doctest_namespace, enable_core_switch, include_metadata_in_junit_xml, json_metadata, live_server, mailoutbox, media_root, metadata, migrator, migrator_factory, monkeypatch, nwk_authorized_client, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, rf, settings, setup_assets, subtests, testrun_uid, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, token_auth_client, transactional_db, worker_id
+test	Run tests	2026-04-19T03:01:05.9368564Z >       use 'pytest --fixtures [testpath]' for help on them.
+test	Run tests	2026-04-19T03:01:05.9368802Z 
+test	Run tests	2026-04-19T03:01:05.9369027Z /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_byte_order_mark.py:47
+test	Run tests	2026-04-19T03:01:05.9370155Z ERROR blueflow/tests/test_csv_byte_order_mark.py::test_process_csv_with_bom - file /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_byte_order_mark.py, line 77
+test	Run tests	2026-04-19T03:01:05.9371098Z   def test_process_csv_with_bom(setup_db):
+test	Run tests	2026-04-19T03:01:05.9371480Z E       fixture 'setup_db' not found
+test	Run tests	2026-04-19T03:01:05.9378357Z >       available fixtures: _auto_db, _dj_autoclear_mailbox, _django_clear_site_cache, _django_db_helper, _django_db_marker, _django_isolate_apps, _django_set_urlconf, _django_setup_unittest, _fail_for_invalid_template_variable, _live_server_helper, _template_string_if_invalid_marker, acme_assets, admin_client, admin_user, asset_edit_client, asset_groups, asset_vulnerabilities, async_client, async_rf, auth_client, biomed_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, celery_app, cfield, cleandb, client, completables, complete_us, custom_field_edit_client, db, django_assert_max_num_queries, django_assert_num_queries, django_capture_on_commit_callbacks, django_db_blocker, django_db_createdb, django_db_keepdb, django_db_modify_db_settings, django_db_modify_db_settings_parallel_suffix, django_db_modify_db_settings_tox_suffix, django_db_modify_db_settings_xdist_suffix, django_db_reset_sequences, django_db_serialized_rollback, django_db_setup, django_db_use_migrations, django_isolated_apps, django_mail_dnsname, django_mail_patch_dns, django_test_environment, django_user_model, django_username_field, doctest_namespace, enable_core_switch, include_metadata_in_junit_xml, json_metadata, live_server, mailoutbox, media_root, metadata, migrator, migrator_factory, monkeypatch, nwk_authorized_client, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, rf, settings, setup_assets, subtests, testrun_uid, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, token_auth_client, transactional_db, worker_id
+test	Run tests	2026-04-19T03:01:05.9383570Z >       use 'pytest --fixtures [testpath]' for help on them.
+test	Run tests	2026-04-19T03:01:05.9383795Z 
+test	Run tests	2026-04-19T03:01:05.9384020Z /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_byte_order_mark.py:77
+test	Run tests	2026-04-19T03:01:05.9384859Z ERROR blueflow/tests/test_csv_custom_field.py::test_process_csv_with_custom_field - file /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_custom_field.py, line 12
+test	Run tests	2026-04-19T03:01:05.9385869Z   def test_process_csv_with_custom_field(setup_db):
+test	Run tests	2026-04-19T03:01:05.9386486Z E       fixture 'setup_db' not found
+test	Run tests	2026-04-19T03:01:05.9391476Z >       available fixtures: _auto_db, _dj_autoclear_mailbox, _django_clear_site_cache, _django_db_helper, _django_db_marker, _django_isolate_apps, _django_set_urlconf, _django_setup_unittest, _fail_for_invalid_template_variable, _live_server_helper, _template_string_if_invalid_marker, acme_assets, admin_client, admin_user, asset_edit_client, asset_groups, asset_vulnerabilities, async_client, async_rf, auth_client, biomed_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, celery_app, cfield, cleandb, client, completables, complete_us, custom_field_edit_client, db, django_assert_max_num_queries, django_assert_num_queries, django_capture_on_commit_callbacks, django_db_blocker, django_db_createdb, django_db_keepdb, django_db_modify_db_settings, django_db_modify_db_settings_parallel_suffix, django_db_modify_db_settings_tox_suffix, django_db_modify_db_settings_xdist_suffix, django_db_reset_sequences, django_db_serialized_rollback, django_db_setup, django_db_use_migrations, django_isolated_apps, django_mail_dnsname, django_mail_patch_dns, django_test_environment, django_user_model, django_username_field, doctest_namespace, enable_core_switch, include_metadata_in_junit_xml, json_metadata, live_server, mailoutbox, media_root, metadata, migrator, migrator_factory, monkeypatch, nwk_authorized_client, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, rf, settings, setup_assets, subtests, testrun_uid, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, token_auth_client, transactional_db, worker_id
+test	Run tests	2026-04-19T03:01:05.9396875Z >       use 'pytest --fixtures [testpath]' for help on them.
+test	Run tests	2026-04-19T03:01:05.9397102Z 
+test	Run tests	2026-04-19T03:01:05.9397330Z /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_custom_field.py:12
+test	Run tests	2026-04-19T03:01:05.9398197Z ERROR blueflow/tests/test_csv_custom_field.py::test_process_csv_with_custom_field_underscores - file /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_custom_field.py, line 53
+test	Run tests	2026-04-19T03:01:05.9399010Z   def test_process_csv_with_custom_field_underscores(setup_db):
+test	Run tests	2026-04-19T03:01:05.9399348Z E       fixture 'setup_db' not found
+test	Run tests	2026-04-19T03:01:05.9404295Z >       available fixtures: _auto_db, _dj_autoclear_mailbox, _django_clear_site_cache, _django_db_helper, _django_db_marker, _django_isolate_apps, _django_set_urlconf, _django_setup_unittest, _fail_for_invalid_template_variable, _live_server_helper, _template_string_if_invalid_marker, acme_assets, admin_client, admin_user, asset_edit_client, asset_groups, asset_vulnerabilities, async_client, async_rf, auth_client, biomed_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, celery_app, cfield, cleandb, client, completables, complete_us, custom_field_edit_client, db, django_assert_max_num_queries, django_assert_num_queries, django_capture_on_commit_callbacks, django_db_blocker, django_db_createdb, django_db_keepdb, django_db_modify_db_settings, django_db_modify_db_settings_parallel_suffix, django_db_modify_db_settings_tox_suffix, django_db_modify_db_settings_xdist_suffix, django_db_reset_sequences, django_db_serialized_rollback, django_db_setup, django_db_use_migrations, django_isolated_apps, django_mail_dnsname, django_mail_patch_dns, django_test_environment, django_user_model, django_username_field, doctest_namespace, enable_core_switch, include_metadata_in_junit_xml, json_metadata, live_server, mailoutbox, media_root, metadata, migrator, migrator_factory, monkeypatch, nwk_authorized_client, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, rf, settings, setup_assets, subtests, testrun_uid, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, token_auth_client, transactional_db, worker_id
+test	Run tests	2026-04-19T03:01:05.9409519Z >       use 'pytest --fixtures [testpath]' for help on them.
+test	Run tests	2026-04-19T03:01:05.9409751Z 
+test	Run tests	2026-04-19T03:01:05.9409959Z /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_custom_field.py:53
+test	Run tests	2026-04-19T03:01:05.9411179Z ERROR blueflow/tests/test_csv_custom_field.py::test_process_csv_with_custom_field_spaces - file /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_custom_field.py, line 94
+test	Run tests	2026-04-19T03:01:05.9411926Z   def test_process_csv_with_custom_field_spaces(setup_db):
+test	Run tests	2026-04-19T03:01:05.9412242Z E       fixture 'setup_db' not found
+test	Run tests	2026-04-19T03:01:05.9417385Z >       available fixtures: _auto_db, _dj_autoclear_mailbox, _django_clear_site_cache, _django_db_helper, _django_db_marker, _django_isolate_apps, _django_set_urlconf, _django_setup_unittest, _fail_for_invalid_template_variable, _live_server_helper, _template_string_if_invalid_marker, acme_assets, admin_client, admin_user, asset_edit_client, asset_groups, asset_vulnerabilities, async_client, async_rf, auth_client, biomed_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, celery_app, cfield, cleandb, client, completables, complete_us, custom_field_edit_client, db, django_assert_max_num_queries, django_assert_num_queries, django_capture_on_commit_callbacks, django_db_blocker, django_db_createdb, django_db_keepdb, django_db_modify_db_settings, django_db_modify_db_settings_parallel_suffix, django_db_modify_db_settings_tox_suffix, django_db_modify_db_settings_xdist_suffix, django_db_reset_sequences, django_db_serialized_rollback, django_db_setup, django_db_use_migrations, django_isolated_apps, django_mail_dnsname, django_mail_patch_dns, django_test_environment, django_user_model, django_username_field, doctest_namespace, enable_core_switch, include_metadata_in_junit_xml, json_metadata, live_server, mailoutbox, media_root, metadata, migrator, migrator_factory, monkeypatch, nwk_authorized_client, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, rf, settings, setup_assets, subtests, testrun_uid, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, token_auth_client, transactional_db, worker_id
+test	Run tests	2026-04-19T03:01:05.9422479Z >       use 'pytest --fixtures [testpath]' for help on them.
+test	Run tests	2026-04-19T03:01:05.9422699Z 
+test	Run tests	2026-04-19T03:01:05.9422903Z /home/runner/work/blueflow/blueflow/blueflow/tests/test_csv_custom_field.py:94
+test	Run tests	2026-04-19T03:01:05.9423671Z ERROR blueflow/tests/test_history.py::TestAssetRiskHistory::test_history_complete - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9424659Z ERROR blueflow/tests/test_history.py::TestAssetRiskHistory::test_risk_history - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9425860Z ERROR blueflow/tests/test_history.py::TestOneFieldHistory::test_setup - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9426841Z ERROR blueflow/tests/test_history.py::TestOneFieldHistory::test_history_length - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9427830Z ERROR blueflow/tests/test_history.py::TestOneFieldHistory::test_history_newestfirst - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9428809Z ERROR blueflow/tests/test_history.py::TestOneFieldHistory::test_changelog - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9429762Z ERROR blueflow/tests/test_history.py::TestOneFieldHistory::test_one_field_history - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9430763Z ERROR blueflow/tests/test_history.py::TestOneFieldHistory::test_history_default_null - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9431772Z ERROR blueflow/tests/test_history.py::TestOneFieldHistory::test_history_default_blank - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9432621Z ERROR blueflow/tests/test_portscan.py::test_portscan_basic - NotImplementedError: Connectors have been removed
+test	Run tests	2026-04-19T03:01:05.9433333Z ERROR blueflow/tests/test_portscan.py::test_portscan_scan_object - NotImplementedError: Connectors have been removed
+test	Run tests	2026-04-19T03:01:05.9434192Z FAILED tests/test_views.py::test_api_schema - assert 404 == 200
+test	Run tests	2026-04-19T03:01:05.9434693Z  +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+test	Run tests	2026-04-19T03:01:05.9435325Z  +  and   200 = status.HTTP_200_OK
+test	Run tests	2026-04-19T03:01:05.9435753Z FAILED blueflow/tests/test_asset.py::test_patch_asset_open_ports_tcp_null - assert 400 == 200
+test	Run tests	2026-04-19T03:01:05.9436255Z  +  where 400 = <Response status_code=400, "application/json">.status_code
+test	Run tests	2026-04-19T03:01:05.9436606Z  +  and   200 = status.HTTP_200_OK
+test	Run tests	2026-04-19T03:01:05.9437172Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_maconly - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9437898Z FAILED blueflow/tests/test_asset.py::test_patch_asset_open_ports_tcp_empty - assert 400 == 200
+test	Run tests	2026-04-19T03:01:05.9438390Z  +  where 400 = <Response status_code=400, "application/json">.status_code
+test	Run tests	2026-04-19T03:01:05.9438738Z  +  and   200 = status.HTTP_200_OK
+test	Run tests	2026-04-19T03:01:05.9439338Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_addinventory_maconly - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9440227Z FAILED blueflow/tests/test_asset.py::test_set_name_empty - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9441024Z FAILED blueflow/tests/test_asset.py::test_set_name_null - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9441884Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_unauthorized - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9442757Z FAILED blueflow/tests/test_asset.py::test_api_create_get_asset - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9443792Z FAILED blueflow/tests/test_api_docs.py::test_get_api_schema - AssertionError: The field 'connector_task' was declared on serializer ScanSerializer, but has not been included in the 'fields' option.
+test	Run tests	2026-04-19T03:01:05.9444694Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_open_ports - assert 400 == 201
+test	Run tests	2026-04-19T03:01:05.9445288Z  +  where 400 = <Response status_code=400, "application/json">.status_code
+test	Run tests	2026-04-19T03:01:05.9445632Z  +  and   201 = status.HTTP_201_CREATED
+test	Run tests	2026-04-19T03:01:05.9446197Z FAILED blueflow/tests/test_asset.py::test_api_create_patch_asset - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9447081Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_displayname - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9448003Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_displayname_name - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9448924Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_displayname_name_2 - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9450226Z FAILED blueflow/tests/test_asset.py::test_external_key_non_connector - TypeError: AssetViewSet.external_links() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9451610Z FAILED blueflow/tests/test_asset.py::test_api_update_asset_displayname - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9452933Z FAILED blueflow/tests/test_asset.py::test_api_create_asset - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9454269Z FAILED blueflow/tests/test_asset.py::test_api_create_unauth_patch_asset - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9455954Z FAILED blueflow/tests/test_asset.py::test_app_sw_version_needs_update - TypeError: AssetViewSet.needs_sw_update() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9457496Z FAILED blueflow/tests/test_asset.py::test_nonsense_app_sw_version_needs_update - TypeError: AssetViewSet.needs_sw_update() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9459358Z FAILED blueflow/tests/test_asset.py::test_unauth_patch_asset - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9460779Z FAILED blueflow/tests/test_asset_vulnerabilities.py::test_get_asset_vulnerabilities - NameError: name 'vulnerability_green' is not defined
+test	Run tests	2026-04-19T03:01:05.9462261Z FAILED blueflow/tests/test_asset.py::test_app_sw_version_not_needs_update - TypeError: AssetViewSet.needs_sw_update() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9463760Z FAILED blueflow/tests/test_asset_vulnerabilities.py::test_get_asset_vulnerabilities_model - NameError: name 'vulnerability_green' is not defined
+test	Run tests	2026-04-19T03:01:05.9465434Z FAILED blueflow/tests/test_asset.py::test_app_sw_no_version_needs_update - TypeError: AssetViewSet.needs_sw_update() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9466496Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_mac_autofill_nic - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9467429Z FAILED blueflow/tests/test_asset_relations.py::test_get_asset_tags_obsolete - TypeError: AssetViewSet.tags() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9468286Z FAILED blueflow/tests/test_asset.py::test_patch_asset - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9469145Z FAILED blueflow/tests/test_asset.py::test_api_create_asset_mac_reject_nic - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9469894Z FAILED blueflow/tests/test_asset.py::test_patch_asset_open_ports_tcp_string - assert 400 == 200
+test	Run tests	2026-04-19T03:01:05.9470402Z  +  where 400 = <Response status_code=400, "application/json">.status_code
+test	Run tests	2026-04-19T03:01:05.9470764Z  +  and   200 = status.HTTP_200_OK
+test	Run tests	2026-04-19T03:01:05.9471281Z FAILED blueflow/tests/test_attachments.py::test_upload_variants[file_only] - NameError: name 'attachment' is not defined
+test	Run tests	2026-04-19T03:01:05.9472117Z FAILED blueflow/tests/test_asset.py::test_patch_asset_open_ports_tcp_list - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9472990Z FAILED blueflow/tests/test_attachments.py::test_upload_variants[with_manufacturer] - NameError: name 'attachment' is not defined
+test	Run tests	2026-04-19T03:01:05.9473757Z FAILED blueflow/tests/test_attachments.py::test_upload_variants[with_model] - NameError: name 'attachment' is not defined
+test	Run tests	2026-04-19T03:01:05.9474481Z FAILED blueflow/tests/test_attachments.py::test_upload_variants[with_asset] - NameError: name 'attachment' is not defined
+test	Run tests	2026-04-19T03:01:05.9475412Z FAILED blueflow/tests/test_attachments.py::test_upload_variants[with_name] - NameError: name 'attachment' is not defined
+test	Run tests	2026-04-19T03:01:05.9476324Z FAILED blueflow/tests/test_asset_relations.py::test_get_asset_network_old_api - TypeError: AssetViewSet.networks() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9477285Z FAILED blueflow/tests/test_csv_byte_order_mark.py::test_tempfile_plain - NameError: name 'tempfile' is not defined. Did you forget to import 'tempfile'
+test	Run tests	2026-04-19T03:01:05.9478203Z FAILED blueflow/tests/test_csv_byte_order_mark.py::test_tempfile_manual_bom - NameError: name 'tempfile' is not defined. Did you forget to import 'tempfile'
+test	Run tests	2026-04-19T03:01:05.9479104Z FAILED blueflow/tests/test_csv_byte_order_mark.py::test_tempfile_auto_bom - NameError: name 'tempfile' is not defined. Did you forget to import 'tempfile'
+test	Run tests	2026-04-19T03:01:05.9480020Z FAILED blueflow/tests/test_custom_history.py::test_history_canonical_fields - TypeError: AssetViewSet.history() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9480986Z FAILED blueflow/tests/test_custom_history.py::test_history_canonical_field_unchanged - TypeError: AssetViewSet.history() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9483050Z FAILED blueflow/tests/test_custom_history.py::test_history_canonical_one_field - TypeError: AssetViewSet.history() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9484712Z FAILED blueflow/tests/test_history.py::TestAssetHistory::test_spam_simple_history - TypeError: AssetViewSet.history() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9486155Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence1] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9487208Z FAILED blueflow/tests/test_history.py::TestAssetHistory::test_history_simple_change - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9488226Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence2] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9489236Z FAILED blueflow/tests/test_history.py::TestAssetHistory::test_history_change_order - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9490252Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence3] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9491295Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence15] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9492319Z FAILED blueflow/tests/test_history.py::TestAssetHistory::test_changelog_change_order - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9493326Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence4] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9494341Z FAILED blueflow/tests/test_history.py::TestAssetHistory::test_spam_simple_changelog - TypeError: AssetViewSet.changelog() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:05.9495511Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence5] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9496547Z FAILED blueflow/tests/test_history.py::TestAssetHistory::test_changelog_simple_change - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:05.9497577Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence6] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0683609Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence7] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0685608Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence8] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0687331Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence9] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0689031Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence10] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0690638Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence11] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0692186Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence12] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0693738Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence13] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0695956Z FAILED blueflow/tests/test_history.py::test_history_empty_values[category-change_sequence0] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0697504Z FAILED blueflow/tests/test_history.py::test_history_empty_values[risk_score-change_sequence14] - AttributeError: 'NoneType' object has no attribute 'history_change_reason'
+test	Run tests	2026-04-19T03:01:06.0698877Z FAILED blueflow/tests/test_reverse.py::test_asset_tags_api - TypeError: AssetViewSet.tags() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:06.0700075Z FAILED blueflow/tests/test_tags.py::test_tag_asset_via_api - TypeError: AssetViewSet.tags() got an unexpected keyword argument 'pk'
+test	Run tests	2026-04-19T03:01:06.0701002Z 68 failed, 249 passed, 4 skipped, 25 xfailed, 2 warnings, 16 errors in 55.70s
+test	Run tests	2026-04-19T03:01:06.2157992Z ##[error]Process completed with exit code 1.
+test	Post Run actions/setup-python@v6	﻿2026-04-19T03:01:06.2230276Z Post job cleanup.
+test	Post Run astral-sh/setup-uv@v7	﻿2026-04-19T03:01:06.3517642Z Post job cleanup.
+test	Post Run astral-sh/setup-uv@v7	2026-04-19T03:01:06.4607950Z UV_CACHE_DIR is already set to /home/runner/work/_temp/setup-uv-cache
+test	Post Run astral-sh/setup-uv@v7	2026-04-19T03:01:06.4613121Z UV_PYTHON_INSTALL_DIR is already set to /home/runner/work/_temp/uv-python-dir
+test	Post Run astral-sh/setup-uv@v7	2026-04-19T03:01:06.4615669Z Cache hit occurred on key setup-uv-2-x86_64-unknown-linux-gnu-ubuntu-24.04-3.12.3-pruned-9775fb783e0f139d1e7bd5222f64ae967cfa3f25f92679e7774b0b4c987f27e6, not saving cache.
+test	Post Run actions/checkout@v6	﻿2026-04-19T03:01:06.5240415Z Post job cleanup.
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6051743Z [command]/usr/bin/git version
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6089290Z git version 2.53.0
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6127950Z Temporarily overriding HOME='/home/runner/work/_temp/2aa240a5-dca2-4a60-ac5a-35d5901eb6cf' before making global git config changes
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6129175Z Adding repository directory to the temporary git global config as a safe directory
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6133905Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/blueflow/blueflow
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6165853Z Removing SSH command configuration
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6171945Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6206442Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6444130Z Removing HTTP extra header
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6449784Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6507703Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6740864Z Removing includeIf entries pointing to credentials config files
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6747924Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6773000Z includeif.gitdir:/home/runner/work/blueflow/blueflow/.git.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6773800Z includeif.gitdir:/home/runner/work/blueflow/blueflow/.git/worktrees/*.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6774422Z includeif.gitdir:/github/workspace/.git.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6774938Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6782964Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/blueflow/blueflow/.git.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6806301Z /home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6816795Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/blueflow/blueflow/.git.path /home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6852116Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/blueflow/blueflow/.git/worktrees/*.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6875402Z /home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6884725Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/blueflow/blueflow/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6917326Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6939324Z /github/runner_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6946727Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.6979100Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.7001105Z /github/runner_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.7009801Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.7042710Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+test	Post Run actions/checkout@v6	2026-04-19T03:01:06.7283768Z Removing credentials config '/home/runner/work/_temp/git-credentials-781a30b5-7d08-4c4d-9d29-7447d8654d73.config'
+test	Stop containers	﻿2026-04-19T03:01:06.7415923Z Print service container logs: 6a4103da9cb14698887dca43fff64e25_postgres16_3e1f56
+test	Stop containers	2026-04-19T03:01:06.7420578Z ##[command]/usr/bin/docker logs --details de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Stop containers	2026-04-19T03:01:06.7552183Z  initdb: warning: enabling "trust" authentication for local connections
+test	Stop containers	2026-04-19T03:01:06.7553384Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+test	Stop containers	2026-04-19T03:01:06.7554916Z  2026-04-19 02:59:46.299 UTC [1] LOG:  starting PostgreSQL 16.13 (Debian 16.13-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+test	Stop containers	2026-04-19T03:01:06.7556257Z  2026-04-19 02:59:46.299 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+test	Stop containers	2026-04-19T03:01:06.7556962Z  2026-04-19 02:59:46.299 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+test	Stop containers	2026-04-19T03:01:06.7557696Z  2026-04-19 02:59:46.300 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+test	Stop containers	2026-04-19T03:01:06.7558565Z  2026-04-19 02:59:46.303 UTC [64] LOG:  database system was shut down at 2026-04-19 02:59:46 UTC
+test	Stop containers	2026-04-19T03:01:06.7559327Z  2026-04-19 02:59:46.307 UTC [1] LOG:  database system is ready to accept connections
+test	Stop containers	2026-04-19T03:01:06.7560363Z  2026-04-19 03:00:43.250 UTC [91] ERROR:  duplicate key value violates unique constraint "blueflow_assetcustomfield_asset_id_field_id_ea095f8c_uniq"
+test	Stop containers	2026-04-19T03:01:06.7561430Z  2026-04-19 03:00:43.250 UTC [91] DETAIL:  Key (asset_id, field_id)=(73, 34) already exists.
+test	Stop containers	2026-04-19T03:01:06.7563040Z  2026-04-19 03:00:43.250 UTC [91] STATEMENT:  INSERT INTO "blueflow_assetcustomfield" ("asset_id", "field_id", "value_text", "date_added") VALUES (73, 34, 'very shiny', '2026-04-19 03:00:43.250166+00:00'::timestamptz) RETURNING "blueflow_assetcustomfield"."id"
+test	Stop containers	2026-04-19T03:01:06.7564596Z  2026-04-19 03:01:02.861 UTC [62] LOG:  checkpoint starting: immediate force wait
+test	Stop containers	2026-04-19T03:01:06.7566606Z  2026-04-19 03:01:02.996 UTC [62] LOG:  checkpoint complete: wrote 3907 buffers (23.8%); 0 WAL file(s) added, 0 removed, 2 recycled; write=0.095 s, sync=0.027 s, total=0.136 s; sync files=2339, longest=0.002 s, average=0.001 s; distance=27265 kB, estimate=27265 kB; lsn=0/34195C0, redo lsn=0/33BF670
+test	Stop containers	2026-04-19T03:01:06.7567616Z  2026-04-19 03:01:03.133 UTC [62] LOG:  checkpoint starting: immediate force wait
+test	Stop containers	2026-04-19T03:01:06.7568577Z  2026-04-19 03:01:03.138 UTC [62] LOG:  checkpoint complete: wrote 58 buffers (0.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.005 s; sync files=41, longest=0.001 s, average=0.001 s; distance=466 kB, estimate=24585 kB; lsn=0/34348B0, redo lsn=0/3434260
+test	Stop containers	2026-04-19T03:01:06.7569775Z  2026-04-19 03:01:03.138 UTC [62] LOG:  checkpoint starting: immediate force wait
+test	Stop containers	2026-04-19T03:01:06.7570715Z  2026-04-19 03:01:03.139 UTC [62] LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.002 s; sync files=0, longest=0.000 s, average=0.000 s; distance=1 kB, estimate=22127 kB; lsn=0/3434968, redo lsn=0/3434928
+test	Stop containers	2026-04-19T03:01:06.7571704Z  2026-04-19 03:01:05.067 UTC [62] LOG:  checkpoint starting: immediate force wait
+test	Stop containers	2026-04-19T03:01:06.7572659Z  2026-04-19 03:01:05.070 UTC [62] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.003 s; sync files=2, longest=0.001 s, average=0.001 s; distance=1868 kB, estimate=20101 kB; lsn=0/3607CD8, redo lsn=0/3607CA0
+test	Stop containers	2026-04-19T03:01:06.7573637Z  The files belonging to this database system will be owned by user "postgres".
+test	Stop containers	2026-04-19T03:01:06.7574035Z  This user must also own the server process.
+test	Stop containers	2026-04-19T03:01:06.7574297Z  
+test	Stop containers	2026-04-19T03:01:06.7574569Z  The database cluster will be initialized with locale "en_US.utf8".
+test	Stop containers	2026-04-19T03:01:06.7574991Z  The default database encoding has accordingly been set to "UTF8".
+test	Stop containers	2026-04-19T03:01:06.7575704Z  The default text search configuration will be set to "english".
+test	Stop containers	2026-04-19T03:01:06.7576230Z  
+test	Stop containers	2026-04-19T03:01:06.7576425Z  Data page checksums are disabled.
+test	Stop containers	2026-04-19T03:01:06.7576664Z  
+test	Stop containers	2026-04-19T03:01:06.7576954Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+test	Stop containers	2026-04-19T03:01:06.7577329Z  creating subdirectories ... ok
+test	Stop containers	2026-04-19T03:01:06.7577636Z  selecting dynamic shared memory implementation ... posix
+test	Stop containers	2026-04-19T03:01:06.7577961Z  selecting default max_connections ... 100
+test	Stop containers	2026-04-19T03:01:06.7578243Z  selecting default shared_buffers ... 128MB
+test	Stop containers	2026-04-19T03:01:06.7578517Z  selecting default time zone ... Etc/UTC
+test	Stop containers	2026-04-19T03:01:06.7578794Z  creating configuration files ... ok
+test	Stop containers	2026-04-19T03:01:06.7579051Z  running bootstrap script ... ok
+test	Stop containers	2026-04-19T03:01:06.7579338Z  performing post-bootstrap initialization ... ok
+test	Stop containers	2026-04-19T03:01:06.7579630Z  syncing data to disk ... ok
+test	Stop containers	2026-04-19T03:01:06.7579852Z  
+test	Stop containers	2026-04-19T03:01:06.7580009Z  
+test	Stop containers	2026-04-19T03:01:06.7580230Z  Success. You can now start the database server using:
+test	Stop containers	2026-04-19T03:01:06.7580520Z  
+test	Stop containers	2026-04-19T03:01:06.7580746Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+test	Stop containers	2026-04-19T03:01:06.7581024Z  
+test	Stop containers	2026-04-19T03:01:06.7581615Z  waiting for server to start....2026-04-19 02:59:45.994 UTC [48] LOG:  starting PostgreSQL 16.13 (Debian 16.13-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+test	Stop containers	2026-04-19T03:01:06.7582447Z  2026-04-19 02:59:45.995 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+test	Stop containers	2026-04-19T03:01:06.7582980Z  2026-04-19 02:59:45.997 UTC [51] LOG:  database system was shut down at 2026-04-19 02:59:45 UTC
+test	Stop containers	2026-04-19T03:01:06.7583456Z  2026-04-19 02:59:46.000 UTC [48] LOG:  database system is ready to accept connections
+test	Stop containers	2026-04-19T03:01:06.7583800Z   done
+test	Stop containers	2026-04-19T03:01:06.7583984Z  server started
+test	Stop containers	2026-04-19T03:01:06.7584178Z  CREATE DATABASE
+test	Stop containers	2026-04-19T03:01:06.7584364Z  
+test	Stop containers	2026-04-19T03:01:06.7584517Z  
+test	Stop containers	2026-04-19T03:01:06.7584822Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+test	Stop containers	2026-04-19T03:01:06.7585425Z  
+test	Stop containers	2026-04-19T03:01:06.7585788Z  2026-04-19 02:59:46.178 UTC [48] LOG:  received fast shutdown request
+test	Stop containers	2026-04-19T03:01:06.7586463Z  waiting for server to shut down....2026-04-19 02:59:46.178 UTC [48] LOG:  aborting any active transactions
+test	Stop containers	2026-04-19T03:01:06.7587135Z  2026-04-19 02:59:46.180 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+test	Stop containers	2026-04-19T03:01:06.7587639Z  2026-04-19 02:59:46.181 UTC [49] LOG:  shutting down
+test	Stop containers	2026-04-19T03:01:06.7588001Z  2026-04-19 02:59:46.181 UTC [49] LOG:  checkpoint starting: shutdown immediate
+test	Stop containers	2026-04-19T03:01:06.7589128Z  2026-04-19 02:59:46.197 UTC [49] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.002 s, total=0.016 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0F0, redo lsn=0/191F0F0
+test	Stop containers	2026-04-19T03:01:06.7590072Z  2026-04-19 02:59:46.203 UTC [48] LOG:  database system is shut down
+test	Stop containers	2026-04-19T03:01:06.7590389Z   done
+test	Stop containers	2026-04-19T03:01:06.7590567Z  server stopped
+test	Stop containers	2026-04-19T03:01:06.7590758Z  
+test	Stop containers	2026-04-19T03:01:06.7590979Z  PostgreSQL init process complete; ready for start up.
+test	Stop containers	2026-04-19T03:01:06.7591262Z  
+test	Stop containers	2026-04-19T03:01:06.7596714Z Stop and remove container: 6a4103da9cb14698887dca43fff64e25_postgres16_3e1f56
+test	Stop containers	2026-04-19T03:01:06.7601941Z ##[command]/usr/bin/docker rm --force de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Stop containers	2026-04-19T03:01:06.8965875Z de5777efe7a08b3627255880b06d00bea9f68a4b4d47b1eb6706ed30caeefa03
+test	Stop containers	2026-04-19T03:01:06.8993767Z Remove container network: github_network_6fa1a4018ca544fbbfcc58c5998bd8cc
+test	Stop containers	2026-04-19T03:01:06.8999316Z ##[command]/usr/bin/docker network rm github_network_6fa1a4018ca544fbbfcc58c5998bd8cc
+test	Stop containers	2026-04-19T03:01:07.0112094Z github_network_6fa1a4018ca544fbbfcc58c5998bd8cc
+test	Complete job	﻿2026-04-19T03:01:07.0175919Z Cleaning up orphan processes
