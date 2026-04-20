@@ -1,4 +1,4 @@
-"""CLI entry point for the agent harness orchestrator."""
+"""CLI entry point for the quil orchestrator."""
 
 import json
 import logging
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import click
 
-from harness.agents import (
+from quil.agents import (
     SensorResult,
     create_draft_pr,
     get_changed_files,
@@ -23,7 +23,7 @@ from harness.agents import (
     run_planner,
     save_output,
 )
-from harness.ci import (
+from quil.ci import (
     CIResult,
     TestReport,
     get_failed_logs,
@@ -31,7 +31,7 @@ from harness.ci import (
     parse_test_output,
     wait_for_ci,
 )
-from harness.state import (
+from quil.state import (
     comment_on_issue,
     derive_branch_name,
     detect_repo,
@@ -41,9 +41,9 @@ from harness.state import (
     transition,
 )
 
-logger = logging.getLogger("harness")
+logger = logging.getLogger("quil")
 
-BASELINE_PATH = Path(__file__).parent / "baseline.json"
+BASELINE_PATH = Path.home() / ".config" / "quil" / "baseline.json"
 
 
 @dataclass
@@ -82,7 +82,7 @@ def _setup_logging(log_dir: Path, issue_number: int) -> None:
 
 @click.group()
 def cli() -> None:
-    """Blueflow agent harness orchestrator."""
+    """Quil — harness engineering CLI."""
 
 
 @cli.command("setup-labels")
@@ -177,7 +177,7 @@ def update_baseline_cmd(test_timeout: int, lint_timeout: int) -> None:
             "Known pre-existing failures and lint violations "
             f"as of {now}. The orchestrator uses this to "
             "distinguish new regressions from baseline noise. "
-            "Update by running: uv run harness update-baseline"
+            "Update by running: quil update-baseline"
         ),
         "_generated_from": "pytest -q --tb=no + ruff check --output-format json",
         "test_failures": sorted(test_report.failed_tests),
@@ -585,7 +585,7 @@ def _single_attempt(
 
 
 def _load_baseline() -> dict:
-    """Load the known-failure baseline from harness/baseline.json."""
+    """Load the known-failure baseline from ~/.config/quil/baseline.json."""
     if not BASELINE_PATH.exists():
         logger.warning("No baseline file found at %s", BASELINE_PATH)
         return {}
