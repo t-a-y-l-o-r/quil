@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 HARNESS_DIR = Path(__file__).parent
 PROMPTS_DIR = HARNESS_DIR / "prompts"
+SETTINGS_DIR = HARNESS_DIR / "settings"
 DEFAULT_LOG_DIR = HARNESS_DIR / ".logs"
 
 PLANNER_TIMEOUT = 300
@@ -187,6 +188,8 @@ def run_coder(
         prompt,
         "--model",
         "sonnet",
+        "--settings",
+        str(SETTINGS_DIR / "coder.json"),
         "--allowedTools",
         "Read",
         "Glob",
