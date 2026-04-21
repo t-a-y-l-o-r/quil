@@ -197,7 +197,7 @@ def run_coder(
         "Edit",
         "Write",
         "Bash(git:*)",
-        "Bash(ruff:*)",
+        "Bash(uv run ruff:*)",
         "--max-budget-usd",
         "10",
     ]
