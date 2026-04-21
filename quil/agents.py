@@ -94,6 +94,40 @@ def save_output(
     return output_path
 
 
+def save_plan_json(
+    issue_number: int,
+    plan: dict,
+    log_dir: Path = DEFAULT_LOG_DIR,
+) -> Path:
+    """Save parsed plan dict as standalone JSON for downstream stages."""
+    issue_dir = log_dir / f"issue-{issue_number}"
+    issue_dir.mkdir(parents=True, exist_ok=True)
+    path = issue_dir / "plan.json"
+    path.write_text(json.dumps(plan, indent=2) + "\n")
+    logger.debug("Saved plan JSON to %s", path)
+    return path
+
+
+def load_plan_json(
+    issue_number: int,
+    plan_file: Path | None = None,
+    log_dir: Path = DEFAULT_LOG_DIR,
+) -> dict:
+    """Load a previously-saved plan JSON.
+
+    Raises FileNotFoundError if the plan file does not exist,
+    and json.JSONDecodeError if the file is not valid JSON.
+    """
+    path = plan_file or (log_dir / f"issue-{issue_number}" / "plan.json")
+    if not path.exists():
+        msg = (
+            f"Plan file not found: {path}\n"
+            f"Run 'quil plan {issue_number}' first, or pass --plan-file."
+        )
+        raise FileNotFoundError(msg)
+    return json.loads(path.read_text())
+
+
 def run_planner(issue_context: str) -> PlanResult:
     """Invoke the Planner agent to produce an implementation plan."""
     template = load_prompt("planner")
