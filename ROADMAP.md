@@ -540,29 +540,64 @@ The coder currently handles branch creation, committing, and ruff via `Bash(git:
 
 ## 7. Phased Rollout
 
-### Phase 1 — Manual trigger, human-in-the-loop — IN PROGRESS
+### Phase 1 — Operator experience — IN PROGRESS
+
+The pipeline works end-to-end but is painful to operate. Fix the human touchpoints before adding automation.
+
+#### 1a. Planner output readability (§5.4)
+- Parse and pretty-print the extracted plan JSON in `_gate_human_approval()`, not the raw agent output
+- Strip ANSI escape codes before display
+- Show a human-friendly summary: classification, branch, steps, risks — not a wall of JSON
+- This is the most critical touchpoint in the pipeline; it must be legible
+
+#### 1b. Agent output capture and live tailing
+- Switch from `subprocess.run(capture_output=True)` to `subprocess.Popen` with line-by-line stdout streaming
+- Write all agent output to log files in real time (not buffered until exit)
+- Maintain a stable symlink at `quil/.logs/current.log` pointing to the active agent's log file; update the symlink each time a new phase starts (planner, coder, code-review)
+- Prefix streamed lines with the agent name (e.g. `[planner]`, `[coder]`) so `tail -f` output is unambiguous across phase transitions
+- Operator runs `tail -f quil/.logs/current.log` in a second terminal for live visibility
+
+#### 1c. Spinner and status reporting
+- Add a CLI spinner (e.g. `click.progressbar` or `rich.status`) to the main orchestrator terminal showing the current phase and elapsed time
+- Display transitions: `[planner] Starting...`, `[planner] Plan received (12s)`, `[coder] Starting (attempt 1)...`, `[coder] Lint retry 1/2...`, `[ci] Waiting for run...`, etc.
+- On completion of each phase, print a one-line summary (e.g. plan classification, changed file count, lint pass/fail, CI status, review verdict)
+
+#### 1d. Remaining from previous Phase 1
 - ~~Build orchestrator script~~ ✅
 - ~~Write agent prompts (planner, coder, reviewer)~~ ✅
 - ~~Set up GitHub Actions CI~~ ✅
 - ~~Create known-failure baseline~~ ✅
 - ~~Add lint short-circuit loop~~ ✅
+- ~~Add CLI-level deny rules for coder~~ ✅ (PR #4)
+- ~~Scope coder Bash to git/ruff only~~ ✅ (PR #4)
 - Run on 3-5 `chore/` tickets manually — **active, first run completed on issue #65**
 - Human approves every plan, reviews every PR
-- **Remaining:** Resolve operational issues in §5.4 (agent visibility, planner output readability, CI log parsing)
-- **Goal:** Validate the three-agent flow works end-to-end
+- **Goal:** The operator can comfortably run and monitor the pipeline from a terminal
 
-### Phase 2 — Semi-automated
-- Add `agent-ready` label workflow
-- Consider auto-approve for low-complexity plans (currently all plans require human approval)
-- Implement `Popen` streaming + `current.log` symlink for live agent visibility
+### Phase 2 — Performance and reliability
+- Hardcode model tiering: Opus for planner, Sonnet for coder, Haiku for reviewer (see §5.4)
+- Make model selection configurable via CLI flag or config file
+- Use `--bare` for all agent invocations to skip auto-discovery overhead
+- Use `--resume` for lint retries so the coder keeps context instead of cold-starting
+- Filter bot comments from issue context before passing to the planner (prevents prompt bloat on retries)
 - Fix CI log prefix stripping for detailed test failure feedback
+- Stop watching `lint.yml` in CI — local lint is authoritative
+- Short-circuit on empty diff after lint loop
 - Remove `continue-on-error` from CI once baselines are clean
+- **Goal:** Pipeline runs faster and fails less on known issues
+
+### Phase 3 — Semi-automated
+- Add `agent-ready` label workflow
+- Consider auto-approve for low-complexity plans
+- Add `--step` flag for breakpoints between pipeline stages
+- Add `quil replay` for re-running a single stage from saved state
+- Expand to `bug/` and `feature/` tickets
 - **Goal:** Reduce human touchpoints to PR review only
 
-### Phase 3 — Scheduled automation
+### Phase 4 — Scheduled automation
 - Cron trigger processes `agent-ready` issues nightly
 - Dashboard/summary of agent activity
-- Expand to `bug/` and `feature/` tickets
+- Orchestrator-managed git lifecycle (requires start/stop strategy, see §5.4)
 - **Goal:** Agent processes backlog overnight, humans review PRs in the morning
 
 ---
