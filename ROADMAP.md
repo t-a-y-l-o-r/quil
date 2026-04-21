@@ -357,8 +357,11 @@ Observed on issue #65: the Coder added `DJ001` to the global ruff ignore list in
 - Coder could add `# noqa` to individual lines (prompt rule may not hold under retry pressure)
 - Coder could add `# type: ignore` or other suppression mechanisms not covered by the rule
 
-**Recommended next step — pyproject.toml guard sensor:**
-Add a check in the orchestrator that rejects any diff touching ruff config in `pyproject.toml`. An automated agent should never alter the project's lint rules — that's a human decision. Implementation: after `get_changed_files()`, if `pyproject.toml` is in the list, fail immediately and feed back: "You modified pyproject.toml. Revert your changes to that file and fix the lint violations in the code instead." This is a hard gate that cannot be bypassed by prompt wording.
+**Mitigations applied (PR #4) — CLI-level deny rules:**
+Added `quil/settings/coder.json` with `permissions.deny` rules that block `Edit` and `Write` to `**/test/**`, `**/tests/**`, and `**/pyproject.toml`. Passed to the coder invocation via `--settings`. This enforces restrictions at the Claude CLI permission layer — the tool call is denied before execution, so no amount of prompt creativity can bypass it. The pyproject.toml guard sensor described below is no longer the critical path, but remains a useful defense-in-depth addition.
+
+**Optional next step — pyproject.toml guard sensor (defense-in-depth):**
+Add a check in the orchestrator that rejects any diff touching ruff config in `pyproject.toml`. An automated agent should never alter the project's lint rules — that's a human decision. Implementation: after `get_changed_files()`, if `pyproject.toml` is in the list, fail immediately and feed back: "You modified pyproject.toml. Revert your changes to that file and fix the lint violations in the code instead." This would catch changes made via `Bash` (e.g. `sed`) that bypass the Edit/Write deny rules.
 
 #### Lint sensor flags baseline violations on touched files
 
@@ -505,11 +508,12 @@ cmd = [
 
 `_code_and_lint()` in `orchestrator.py` would need to thread `session_id` through the loop — generate it once before the loop, pass to `run_coder()`, and reuse on retries.
 
-**Model tiering (implemented in PR #106):**
-- Planner: Opus (deep reasoning for plan quality)
-- Coder: Sonnet (follows a plan, faster output)
-- Code review: default/Opus (pattern matching against diffs)
+**Model tiering:**
+- Planner: Opus — deep reasoning for plan quality. To be hardcoded via `--model opus` in `run_planner()`.
+- Coder: Sonnet — follows a plan, faster output. ✅ Already hardcoded via `--model sonnet` in `run_coder()`.
+- Code Review: Haiku — lightweight validation against diff + plan. To be hardcoded via `--model haiku` in `run_code_review()`.
 - Coder lint retries: Sonnet or Haiku + `--effort low` (mechanical fixes)
+- **Future:** Make model selection configurable (CLI flag or config file) rather than hardcoded, so operators can tune cost/quality per stage.
 
 **Other speed wins identified (2026-04-18):**
 - Stop watching `lint.yml` in CI — local lint is already authoritative, the orchestrator ignores CI lint results anyway. Removes one full CI poll cycle.
