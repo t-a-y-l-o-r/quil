@@ -470,6 +470,17 @@ If the Coder hasn't made a meaningful change (file edit, git commit) within N mi
 
 **Recommendation:** Option A. It's battle-tested, requires ~15 lines of code, and the "double Ctrl-C to kill" pattern is intuitive to anyone who's used a terminal. Ctrl-D for kill is less reliable because the agent subprocess may have stdin and the EOF may not propagate cleanly.
 
+#### Sleep/wake recovery via SIGCONT
+
+When macOS sleeps (laptop lid close), all processes receive SIGSTOP. On wake they receive SIGCONT — but any active network connections (Claude API, GitHub API) will have timed out. The subprocess timeout clock may also have advanced past the limit during sleep, causing spurious timeout errors.
+
+**Approach:** Register a `signal.signal(signal.SIGCONT, handler)` in the orchestrator. On SIGCONT:
+1. Kill the active agent subprocess (`process.terminate()`)
+2. Log that the system slept and the current phase is being restarted
+3. Re-invoke the current phase from the top (the branch and any committed work are preserved on disk)
+
+This gives real recovery, not just a better error message. The coder's work-in-progress (uncommitted edits) survives because the files are on disk — only the subprocess and its API connections are lost. For lint retries this is effectively free; for a mid-flight coder run, the worst case is re-running one phase.
+
 #### Coder context waste: cold starts and CLAUDE.md bloat
 
 Every agent invocation is a fresh `claude --print` subprocess. Each one auto-discovers and loads the full CLAUDE.md chain (global `~/.claude/CLAUDE.md` + project CLAUDE.md + memory files), hooks, LSP, etc. On lint retries this is especially wasteful — the Coder re-reads every file, re-parses the plan, and re-orients before making a small fix. Issue #65's lint retry took ~10 minutes, most of which was context rebuilding.
