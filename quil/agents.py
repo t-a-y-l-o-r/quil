@@ -196,7 +196,8 @@ def run_coder(
         "Grep",
         "Edit",
         "Write",
-        "Bash",
+        "Bash(git:*)",
+        "Bash(ruff:*)",
         "--max-budget-usd",
         "10",
     ]

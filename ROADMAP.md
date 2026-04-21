@@ -515,6 +515,9 @@ cmd = [
 - Coder lint retries: Sonnet or Haiku + `--effort low` (mechanical fixes)
 - **Future:** Make model selection configurable (CLI flag or config file) rather than hardcoded, so operators can tune cost/quality per stage.
 
+**Future: Orchestrator-managed git lifecycle:**
+The coder currently handles branch creation, committing, and ruff via `Bash(git:*)` and `Bash(ruff:*)`. Ideally the orchestrator would own this entirely — create the branch before invoking the coder, commit after it exits, and run lint as a sensor. This would let us remove Bash from the coder completely. The blocker is that the coder runs as a single `--print` subprocess: we can't interrupt it mid-session to commit incrementally. Solving this requires a start/stop strategy — either `--resume` to pause and re-enter the session, `--output-format stream-json` with an event-driven orchestrator, or breaking the plan into one coder invocation per step. Worth exploring once the `--resume`-based lint retry approach (above) is proven.
+
 **Other speed wins identified (2026-04-18):**
 - Stop watching `lint.yml` in CI — local lint is already authoritative, the orchestrator ignores CI lint results anyway. Removes one full CI poll cycle.
 - Short-circuit on empty diff — if `get_changed_files()` is empty after the lint loop (e.g. coder timed out), skip push/CI/review entirely.
