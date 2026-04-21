@@ -16,12 +16,14 @@ from quil.agents import (
     create_draft_pr,
     get_changed_files,
     get_diff,
+    load_plan_json,
     push_branch,
     run_code_review,
     run_coder,
     run_lint,
     run_planner,
     save_output,
+    save_plan_json,
 )
 from quil.ci import (
     CIResult,
@@ -108,6 +110,209 @@ def list_eligible_cmd() -> None:
     click.echo("-" * 60)
     for issue in issues:
         click.echo(f"{issue['number']:<6} {issue['title']}")
+
+
+@cli.command("plan")
+@click.argument("issue_number", type=int)
+@click.option(
+    "--log-dir",
+    type=click.Path(path_type=Path),
+    default=Path(__file__).parent / ".logs",
+    help="Directory for agent output logs.",
+)
+@click.option(
+    "--no-approval",
+    is_flag=True,
+    default=False,
+    help="Skip the interactive approval prompt.",
+)
+def plan_cmd(issue_number: int, *, log_dir: Path, no_approval: bool) -> None:
+    """Run only the Planner stage for a GitHub issue."""
+    _setup_logging(log_dir, issue_number)
+    repo = detect_repo()
+
+    logger.info("Fetching issue #%d from %s", issue_number, repo)
+    issue = fetch_issue(repo, issue_number)
+    logger.info("Issue: %s", issue["title"])
+
+    logger.info("Starting Planner agent...")
+    issue_context = json.dumps(issue, indent=2)
+    plan_result = run_planner(issue_context)
+    save_output(issue_number, "planner", 1, plan_result.raw_output, log_dir)
+
+    if plan_result.plan is None:
+        click.echo("Planner produced no valid JSON plan.", err=True)
+        sys.exit(1)
+
+    plan_path = save_plan_json(issue_number, plan_result.plan, log_dir)
+    logger.info("Plan saved to %s", plan_path)
+
+    click.echo("\n--- Proposed Plan ---")
+    click.echo(json.dumps(plan_result.plan, indent=2))
+    click.echo("--- End Plan ---\n")
+
+    if not no_approval:
+        if not click.confirm("Approve this plan?"):
+            click.echo("Plan not approved.")
+            sys.exit(1)
+        click.echo("Plan approved.")
+
+
+@cli.command("code")
+@click.argument("issue_number", type=int)
+@click.option(
+    "--plan-file",
+    type=click.Path(exists=False, path_type=Path),
+    default=None,
+    help="Path to a plan JSON file. Default: .logs/issue-{N}/plan.json",
+)
+@click.option(
+    "--log-dir",
+    type=click.Path(path_type=Path),
+    default=Path(__file__).parent / ".logs",
+    help="Directory for agent output logs.",
+)
+@click.option(
+    "--max-lint-retries",
+    default=2,
+    help="Maximum lint retry attempts.",
+)
+@click.option(
+    "--feedback",
+    default=None,
+    help="Initial feedback string to pass to the Coder.",
+)
+def code_cmd(
+    issue_number: int,
+    plan_file: Path | None,
+    *,
+    log_dir: Path,
+    max_lint_retries: int,
+    feedback: str | None,
+) -> None:
+    """Run only the Coder stage for a GitHub issue."""
+    _setup_logging(log_dir, issue_number)
+
+    try:
+        plan = load_plan_json(issue_number, plan_file, log_dir)
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    repo = detect_repo()
+    issue = fetch_issue(repo, issue_number)
+    branch_name = derive_branch_name(issue)
+    plan_json = json.dumps(plan, indent=2)
+    cwd = str(Path.cwd())
+
+    logger.info("Branch: %s", branch_name)
+
+    lint_result = _code_and_lint(
+        issue_number,
+        plan_json,
+        branch_name,
+        attempt=1,
+        feedback=feedback,
+        cwd=cwd,
+        log_dir=log_dir,
+    )
+
+    if lint_result.passed:
+        changed = get_changed_files(cwd)
+        click.echo(f"\nCoder finished. Branch: {branch_name}")
+        click.echo(f"Changed files ({len(changed)}):")
+        for f in changed:
+            click.echo(f"  {f}")
+        click.echo("\nLint: PASS")
+    else:
+        click.echo("Lint: FAIL (after retries)", err=True)
+        click.echo(lint_result.output[:500], err=True)
+        sys.exit(1)
+
+
+@cli.command("review")
+@click.argument("issue_number", type=int)
+@click.option(
+    "--plan-file",
+    type=click.Path(exists=False, path_type=Path),
+    default=None,
+    help="Path to a plan JSON file. Default: .logs/issue-{N}/plan.json",
+)
+@click.option(
+    "--log-dir",
+    type=click.Path(path_type=Path),
+    default=Path(__file__).parent / ".logs",
+    help="Directory for agent output logs.",
+)
+@click.option(
+    "--base-branch",
+    default="develop",
+    help="Branch to diff against.",
+)
+def review_cmd(
+    issue_number: int,
+    plan_file: Path | None,
+    *,
+    log_dir: Path,
+    base_branch: str,
+) -> None:
+    """Run only the Reviewer stage for a GitHub issue."""
+    _setup_logging(log_dir, issue_number)
+
+    try:
+        plan = load_plan_json(issue_number, plan_file, log_dir)
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    plan_json = json.dumps(plan, indent=2)
+    cwd = str(Path.cwd())
+    diff = get_diff(cwd, base=base_branch)
+
+    if not diff.strip():
+        click.echo(
+            f"No changes found between HEAD and {base_branch}. "
+            f"Nothing to review."
+        )
+        return
+
+    logger.info("Starting code review agent...")
+    review_result = run_code_review(diff=diff, plan_json=plan_json)
+    save_output(
+        issue_number, "code-review", 1, review_result.raw_output, log_dir
+    )
+
+    if review_result.findings:
+        findings_path = log_dir / f"issue-{issue_number}" / "review-findings.json"
+        findings_path.parent.mkdir(parents=True, exist_ok=True)
+        findings_path.write_text(
+            json.dumps(review_result.findings, indent=2) + "\n"
+        )
+        logger.info("Findings saved to %s", findings_path)
+
+    if not review_result.findings:
+        click.echo("\nNo findings. Code looks good.")
+        return
+
+    click.echo(
+        f"\n--- Code Review: {len(review_result.findings)} finding(s) ---"
+    )
+    for finding in review_result.findings:
+        severity = finding.get("severity", "info")
+        file = finding.get("file", "?")
+        line = finding.get("line", "?")
+        msg = finding.get("message", "")
+        click.echo(f"  [{severity}] {file}:{line} -- {msg}")
+
+    blockers = [
+        f
+        for f in review_result.findings
+        if f.get("severity") == "blocker"
+    ]
+    click.echo(f"\nBlockers: {len(blockers)}")
+    if blockers:
+        click.echo("Verdict: REJECT")
+        sys.exit(1)
+    else:
+        click.echo("Verdict: APPROVE (no blockers)")
 
 
 @cli.command("update-baseline")
@@ -307,6 +512,7 @@ def _phase_plan(
         )
         return None
 
+    save_plan_json(issue_number, plan_result.plan, log_dir)
     classification = plan_result.plan.get("classification")
     logger.info("Plan received. Classification: %s", classification)
     return plan_result.plan
