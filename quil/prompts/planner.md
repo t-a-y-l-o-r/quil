@@ -27,11 +27,9 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) matching thi
   "classification": "feature" | "bug" | "chore",
   "branch_name": "<prefix>/<number>-<slug>",
   "affected_files": ["<path>", ...],
-  "new_files": ["<path>", ...],
   "plan_steps": [
     {"step": <int>, "description": "<what to do>", "file": "<path>", "rationale": "<why>"}
   ],
-  "test_strategy": "<how to test the changes>",
   "risks": ["<potential issue>", ...],
   "acceptance_criteria": ["<criterion>", ...],
   "estimated_complexity": "low" | "medium" | "high"
