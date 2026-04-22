@@ -172,7 +172,17 @@ def run_planner(issue_context: str) -> PlanResult:
         return PlanResult(raw_output=raw, plan=None)
 
     raw = result.stdout
-    plan = extract_json(raw)
+
+    # --output-format json wraps output in a metadata envelope with the
+    # actual content in the "result" field as a string.  Unwrap it before
+    # attempting to extract the plan JSON.
+    text = raw
+    with contextlib.suppress(json.JSONDecodeError, TypeError):
+        envelope = json.loads(raw)
+        if isinstance(envelope, dict) and "result" in envelope:
+            text = envelope["result"]
+
+    plan = extract_json(text)
     return PlanResult(raw_output=raw, plan=plan)
 
 
