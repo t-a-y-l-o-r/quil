@@ -54,11 +54,21 @@ def _recover_stdout(exc: subprocess.TimeoutExpired) -> str:
     return out.decode() if isinstance(out, bytes) else out
 
 
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from text."""
+    return _ANSI_RE.sub("", text)
+
+
 def extract_json(text: str) -> dict | None:
     """Extract a JSON object from agent output.
 
     Handles both ```json fenced blocks and raw JSON.
+    Strips ANSI escape codes before parsing.
     """
+    text = strip_ansi(text)
     match = re.search(r"```json\s*\n(.*?)\n```", text, re.DOTALL)
     if match:
         with contextlib.suppress(json.JSONDecodeError):

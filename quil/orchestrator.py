@@ -269,32 +269,25 @@ def review_cmd(
 
     if not diff.strip():
         click.echo(
-            f"No changes found between HEAD and {base_branch}. "
-            f"Nothing to review."
+            f"No changes found between HEAD and {base_branch}. Nothing to review."
         )
         return
 
     logger.info("Starting code review agent...")
     review_result = run_code_review(diff=diff, plan_json=plan_json)
-    save_output(
-        issue_number, "code-review", 1, review_result.raw_output, log_dir
-    )
+    save_output(issue_number, "code-review", 1, review_result.raw_output, log_dir)
 
     if review_result.findings:
         findings_path = log_dir / f"issue-{issue_number}" / "review-findings.json"
         findings_path.parent.mkdir(parents=True, exist_ok=True)
-        findings_path.write_text(
-            json.dumps(review_result.findings, indent=2) + "\n"
-        )
+        findings_path.write_text(json.dumps(review_result.findings, indent=2) + "\n")
         logger.info("Findings saved to %s", findings_path)
 
     if not review_result.findings:
         click.echo("\nNo findings. Code looks good.")
         return
 
-    click.echo(
-        f"\n--- Code Review: {len(review_result.findings)} finding(s) ---"
-    )
+    click.echo(f"\n--- Code Review: {len(review_result.findings)} finding(s) ---")
     for finding in review_result.findings:
         severity = finding.get("severity", "info")
         file = finding.get("file", "?")
@@ -302,11 +295,7 @@ def review_cmd(
         msg = finding.get("message", "")
         click.echo(f"  [{severity}] {file}:{line} -- {msg}")
 
-    blockers = [
-        f
-        for f in review_result.findings
-        if f.get("severity") == "blocker"
-    ]
+    blockers = [f for f in review_result.findings if f.get("severity") == "blocker"]
     click.echo(f"\nBlockers: {len(blockers)}")
     if blockers:
         click.echo("Verdict: REJECT")
@@ -518,11 +507,63 @@ def _phase_plan(
     return plan_result.plan
 
 
+def _format_plan_summary(plan: dict) -> str:
+    """Format a plan dict as a human-readable summary."""
+    lines: list[str] = []
+
+    issue = plan.get("issue_number", "?")
+    title = plan.get("issue_title", "Untitled")
+    lines.append(f"  Issue:        #{issue} — {title}")
+
+    classification = plan.get("classification", "unknown")
+    complexity = plan.get("estimated_complexity", "unknown")
+    lines.append(f"  Type:         {classification} ({complexity} complexity)")
+
+    branch = plan.get("branch_name", "unknown")
+    lines.append(f"  Branch:       {branch}")
+
+    affected = plan.get("affected_files", [])
+    if affected:
+        lines.append(f"  Files:        {len(affected)} affected")
+        for f in affected:
+            lines.append(f"                  {f}")
+
+    steps = plan.get("plan_steps", [])
+    if steps:
+        lines.append("")
+        lines.append("  Steps:")
+        for s in steps:
+            num = s.get("step", "?")
+            desc = s.get("description", "")
+            target = s.get("file", "")
+            prefix = f"    {num}. "
+            if target:
+                lines.append(f"{prefix}{desc} [{target}]")
+            else:
+                lines.append(f"{prefix}{desc}")
+
+    risks = plan.get("risks", [])
+    if risks:
+        lines.append("")
+        lines.append("  Risks:")
+        for r in risks:
+            lines.append(f"    - {r}")
+
+    criteria = plan.get("acceptance_criteria", [])
+    if criteria:
+        lines.append("")
+        lines.append("  Acceptance:")
+        for c in criteria:
+            lines.append(f"    - {c}")
+
+    return "\n".join(lines)
+
+
 def _gate_human_approval(plan: dict) -> bool:
-    """Display the plan and prompt for human approval."""
-    click.echo("\n--- Proposed Plan ---")
-    click.echo(json.dumps(plan, indent=2))
-    click.echo("--- End Plan ---\n")
+    """Display a human-readable plan summary and prompt for approval."""
+    click.echo("\n┌─── Proposed Plan ───")
+    click.echo(_format_plan_summary(plan))
+    click.echo("└─────────────────────\n")
     return click.confirm("Approve this plan?")
 
 
