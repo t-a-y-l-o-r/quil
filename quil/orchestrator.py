@@ -408,6 +408,7 @@ def run(
     """Run the full agent pipeline for a GitHub issue."""
     window = OutputWindow()
     _setup_logging(log_dir, issue_number, window=window)
+    window.activate()
     repo = detect_repo()
 
     try:
@@ -425,6 +426,8 @@ def run(
         logger.exception("Pipeline failed with unexpected error")
         _fail(repo, issue_number, None, f"Unexpected error: {exc}")
         sys.exit(1)
+    finally:
+        window.deactivate()
 
 
 def _run_pipeline(
@@ -441,7 +444,7 @@ def _run_pipeline(
     if plan is None:
         return
 
-    if not _gate_human_approval(plan):
+    if not _gate_human_approval(plan, window=window):
         _fail(
             repo,
             issue_number,
@@ -583,11 +586,20 @@ def _format_plan_summary(plan: dict) -> str:
     return "\n".join(lines)
 
 
-def _gate_human_approval(plan: dict) -> bool:
+def _gate_human_approval(
+    plan: dict,
+    window: OutputWindow | None = None,
+) -> bool:
     """Display a human-readable plan summary and prompt for approval."""
-    click.echo("\n┌─── Proposed Plan ───")
-    click.echo(_format_plan_summary(plan))
-    click.echo("└─────────────────────\n")
+    summary = (
+        "\n┌─── Proposed Plan ───\n"
+        f"{_format_plan_summary(plan)}\n"
+        "└─────────────────────\n"
+    )
+    if window:
+        window.write(summary)
+    else:
+        click.echo(summary)
     return click.confirm("Approve this plan?")
 
 
