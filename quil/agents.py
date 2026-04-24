@@ -204,7 +204,7 @@ def run_coder(
     actionable for the Coder.
     """
     coder_plan = {k: plan[k] for k in CODER_PLAN_KEYS if k in plan}
-    plan_json = json.dumps(coder_plan, indent=2)
+    plan_json = json.dumps(coder_plan)
 
     template = load_prompt("coder")
     feedback_section = f"\n\n## Reviewer Feedback\n{feedback}" if feedback else ""
