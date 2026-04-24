@@ -139,7 +139,9 @@ def list_eligible_cmd() -> None:
 )
 def plan_cmd(issue_number: int, *, log_dir: Path, no_approval: bool) -> None:
     """Run only the Planner stage for a GitHub issue."""
-    _setup_logging(log_dir, issue_number)
+    window = OutputWindow()
+    _setup_logging(log_dir, issue_number, window=window)
+    window.activate()
     repo = detect_repo()
 
     logger.info("Fetching issue #%d from %s", issue_number, repo)
@@ -158,15 +160,14 @@ def plan_cmd(issue_number: int, *, log_dir: Path, no_approval: bool) -> None:
     plan_path = save_plan_json(issue_number, plan_result.plan, log_dir)
     logger.info("Plan saved to %s", plan_path)
 
-    click.echo("\n--- Proposed Plan ---")
-    click.echo(json.dumps(plan_result.plan, indent=2))
-    click.echo("--- End Plan ---\n")
-
     if not no_approval:
-        if not click.confirm("Approve this plan?"):
+        if not _gate_human_approval(plan_result.plan, window=window):
             click.echo("Plan not approved.")
             sys.exit(1)
         click.echo("Plan approved.")
+    else:
+        window.deactivate()
+        click.echo(_format_plan_summary(plan_result.plan))
 
 
 @cli.command("code")
