@@ -150,7 +150,14 @@ def plan_cmd(issue_number: int, *, log_dir: Path, no_approval: bool) -> None:
 
     logger.info("Starting Planner agent...")
     issue_context = json.dumps(issue, indent=2)
-    plan_result = run_planner(issue_context)
+    stream_log = log_dir / f"issue-{issue_number}" / "planner-stream.log"
+    window.start("planner")
+    plan_result = run_planner(
+        issue_context,
+        on_line=window.update_line,
+        log_file=stream_log,
+    )
+    window.stop()
     save_output(issue_number, "planner", 1, plan_result.raw_output, log_dir)
 
     if plan_result.plan is None:
@@ -203,7 +210,9 @@ def code_cmd(
     feedback: str | None,
 ) -> None:
     """Run only the Coder stage for a GitHub issue."""
-    _setup_logging(log_dir, issue_number)
+    window = OutputWindow()
+    _setup_logging(log_dir, issue_number, window=window)
+    window.activate()
 
     try:
         plan = load_plan_json(issue_number, plan_file, log_dir)
@@ -225,7 +234,10 @@ def code_cmd(
         feedback=feedback,
         cwd=cwd,
         log_dir=log_dir,
+        window=window,
     )
+
+    window.deactivate()
 
     if lint_result.passed:
         changed = get_changed_files(cwd)
@@ -267,7 +279,9 @@ def review_cmd(
     base_branch: str,
 ) -> None:
     """Run only the Reviewer stage for a GitHub issue."""
-    _setup_logging(log_dir, issue_number)
+    window = OutputWindow()
+    _setup_logging(log_dir, issue_number, window=window)
+    window.activate()
 
     try:
         plan = load_plan_json(issue_number, plan_file, log_dir)
@@ -279,13 +293,22 @@ def review_cmd(
     diff = get_diff(cwd, base=base_branch)
 
     if not diff.strip():
+        window.deactivate()
         click.echo(
             f"No changes found between HEAD and {base_branch}. Nothing to review."
         )
         return
 
     logger.info("Starting code review agent...")
-    review_result = run_code_review(diff=diff, plan_json=plan_json)
+    stream_log = log_dir / f"issue-{issue_number}" / "review-stream.log"
+    window.start("reviewer")
+    review_result = run_code_review(
+        diff=diff,
+        plan_json=plan_json,
+        on_line=window.update_line,
+        log_file=stream_log,
+    )
+    window.stop()
     save_output(issue_number, "code-review", 1, review_result.raw_output, log_dir)
 
     if review_result.findings:
@@ -293,6 +316,8 @@ def review_cmd(
         findings_path.parent.mkdir(parents=True, exist_ok=True)
         findings_path.write_text(json.dumps(review_result.findings, indent=2) + "\n")
         logger.info("Findings saved to %s", findings_path)
+
+    window.deactivate()
 
     if not review_result.findings:
         click.echo("\nNo findings. Code looks good.")
