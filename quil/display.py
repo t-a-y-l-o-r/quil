@@ -55,6 +55,7 @@ class OutputWindow:
         self._w: int = 80
         self._h: int = 24
         self._scroll_bottom: int = 0
+        self._quil_lines: deque[str] = deque(maxlen=500)
 
     @property
     def lock(self) -> threading.Lock:
@@ -86,9 +87,16 @@ class OutputWindow:
         out.append(self._quil_top_border())
         out.append("\n")
 
-        # Empty quil content rows (scroll region)
-        for _ in range(self._scroll_bottom - 2 + 1):
+        # Replay buffered quil lines (or empty rows if none)
+        log_rows = self._scroll_bottom - 2 + 1
+        # Keep only the most recent lines that fit in the scroll region
+        recent: list[str] = list(self._quil_lines)[-log_rows:]
+        blank_rows = log_rows - len(recent)
+        for _ in range(blank_rows):
             out.append(self._quil_content_line(""))
+            out.append("\n")
+        for line in recent:
+            out.append(self._quil_content_line(line))
             out.append("\n")
 
         # Quil bottom border
@@ -229,12 +237,15 @@ class OutputWindow:
 
         Must be called with self._lock held.
         """
+        stripped = text.rstrip("\n")
+        self._quil_lines.append(stripped)
+
         if not self._layout_active:
             sys.stderr.write(text)
             sys.stderr.flush()
             return
 
-        formatted = self._quil_content_line(text.rstrip("\n"))
+        formatted = self._quil_content_line(stripped)
 
         sys.stderr.write("\033[s")  # save cursor
         sys.stderr.write("\033[S")  # scroll region up one line
