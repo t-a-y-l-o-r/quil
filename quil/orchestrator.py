@@ -710,6 +710,57 @@ def _phase_code_review_loop(
 MAX_LINT_RETRIES = 2
 
 
+def _checkout_branch(branch_name: str, cwd: str) -> None:
+    """Create or switch to the feature branch."""
+    result = subprocess.run(
+        ["git", "checkout", "-b", branch_name, "develop"],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        check=False,
+    )
+    if result.returncode != 0:
+        # Branch already exists (e.g. retry) — switch to it
+        subprocess.run(
+            ["git", "checkout", branch_name],
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            check=True,
+        )
+
+
+def _commit_changes(plan: dict, cwd: str) -> bool:
+    """Stage and commit all changes with --no-verify.
+
+    Returns True if a commit was created, False if there was nothing to commit.
+    """
+    subprocess.run(
+        ["git", "add", "-A"],
+        cwd=cwd,
+        check=True,
+    )
+
+    # Check if there's anything to commit
+    status = subprocess.run(
+        ["git", "diff", "--cached", "--quiet"],
+        cwd=cwd,
+        check=False,
+    )
+    if status.returncode == 0:
+        logger.info("No changes to commit.")
+        return False
+
+    title = plan.get("issue_title", "Implement plan")
+    message = f"{title}\n\nAutomated commit by quil coder agent."
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", message],
+        cwd=cwd,
+        check=True,
+    )
+    return True
+
+
 def _code_and_lint(
     issue_number: int,
     plan: dict,
@@ -727,8 +778,14 @@ def _code_and_lint(
     without burning a full CI round trip.  Lint retries do NOT
     count toward the outer ``max_attempts`` limit.
 
+    The orchestrator owns the git lifecycle: it creates/switches to the
+    branch before invoking the coder, and commits changes after the
+    coder finishes.  The coder has no Bash access.
+
     Returns the final lint SensorResult (passed or not).
     """
+    _checkout_branch(branch_name, cwd)
+
     for lint_try in range(1 + MAX_LINT_RETRIES):
         suffix = f" (lint retry {lint_try})" if lint_try > 0 else ""
         logger.info(
@@ -762,6 +819,8 @@ def _code_and_lint(
             coder_result.raw_output,
             log_dir,
         )
+
+        _commit_changes(plan, cwd)
 
         changed_files = get_changed_files(cwd)
         logger.info("Running lint on %d changed files...", len(changed_files))
