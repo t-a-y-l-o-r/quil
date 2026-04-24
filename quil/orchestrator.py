@@ -25,6 +25,7 @@ from quil.agents import (
     save_output,
     save_plan_json,
 )
+from quil.display import OutputWindow, WindowAwareHandler
 from quil.ci import (
     CIResult,
     TestReport,
@@ -59,7 +60,11 @@ class Verdict:
     pr_url: str | None = None
 
 
-def _setup_logging(log_dir: Path, issue_number: int) -> None:
+def _setup_logging(
+    log_dir: Path,
+    issue_number: int,
+    window: OutputWindow | None = None,
+) -> None:
     """Configure console + file logging."""
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"issue-{issue_number}" / "orchestrator.log"
@@ -69,7 +74,10 @@ def _setup_logging(log_dir: Path, issue_number: int) -> None:
         "%(asctime)s [%(levelname)s] %(message)s",
     )
 
-    console = logging.StreamHandler()
+    if window is not None:
+        console: logging.Handler = WindowAwareHandler(window)
+    else:
+        console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     console.setFormatter(formatter)
 
@@ -398,7 +406,8 @@ def run(
     log_dir: Path,
 ) -> None:
     """Run the full agent pipeline for a GitHub issue."""
-    _setup_logging(log_dir, issue_number)
+    window = OutputWindow()
+    _setup_logging(log_dir, issue_number, window=window)
     repo = detect_repo()
 
     try:
@@ -407,6 +416,7 @@ def run(
             issue_number,
             max_attempts=max_attempts,
             log_dir=log_dir,
+            window=window,
         )
     except KeyboardInterrupt:
         logger.info("Interrupted by user.")
@@ -423,10 +433,11 @@ def _run_pipeline(
     *,
     max_attempts: int,
     log_dir: Path,
+    window: OutputWindow | None = None,
 ) -> None:
     """Execute the Planner -> Coder -> CI -> Review pipeline."""
     issue = _phase_fetch(repo, issue_number)
-    plan = _phase_plan(repo, issue_number, issue, log_dir)
+    plan = _phase_plan(repo, issue_number, issue, log_dir, window=window)
     if plan is None:
         return
 
@@ -450,6 +461,7 @@ def _run_pipeline(
         branch_name=branch_name,
         max_attempts=max_attempts,
         log_dir=log_dir,
+        window=window,
     )
 
     if pr_url:
@@ -476,13 +488,26 @@ def _phase_plan(
     issue_number: int,
     issue: dict,
     log_dir: Path,
+    *,
+    window: OutputWindow | None = None,
 ) -> dict | None:
     """Run the Planner agent and return the plan, or None on failure."""
     logger.info("Starting Planner agent...")
     transition(repo, issue_number, "agent-ready", "agent-planning")
 
     issue_context = json.dumps(issue, indent=2)
-    plan_result = run_planner(issue_context)
+    stream_log = log_dir / f"issue-{issue_number}" / "planner-stream.log"
+
+    if window:
+        window.start("planner")
+    plan_result = run_planner(
+        issue_context,
+        on_line=window.update_line if window else None,
+        log_file=stream_log if window else None,
+    )
+    if window:
+        window.stop()
+
     save_output(
         issue_number,
         "planner",
@@ -575,6 +600,7 @@ def _phase_code_review_loop(
     branch_name: str,
     max_attempts: int,
     log_dir: Path,
+    window: OutputWindow | None = None,
 ) -> str | None:
     """Run the Coder/CI/Review loop. Returns the PR URL if approved."""
     plan_json = json.dumps(plan, indent=2)
@@ -598,6 +624,7 @@ def _phase_code_review_loop(
             feedback=feedback,
             cwd=cwd,
             log_dir=log_dir,
+            window=window,
         )
 
         if verdict.pr_url:
@@ -652,6 +679,7 @@ def _code_and_lint(
     feedback: str | None,
     cwd: str,
     log_dir: Path,
+    window: OutputWindow | None = None,
 ) -> SensorResult:
     """Run the Coder then lint, retrying lint failures locally.
 
@@ -668,12 +696,25 @@ def _code_and_lint(
             attempt,
             suffix,
         )
+        stream_log = (
+            log_dir
+            / f"issue-{issue_number}"
+            / f"coder-stream-{attempt}-{lint_try}.log"
+        )
+
+        if window:
+            window.start("coder")
         coder_result = run_coder(
             plan,
             branch_name,
             feedback=feedback,
             cwd=cwd,
+            on_line=window.update_line if window else None,
+            log_file=stream_log if window else None,
         )
+        if window:
+            window.stop()
+
         save_output(
             issue_number,
             "coder",
@@ -722,6 +763,7 @@ def _single_attempt(
     feedback: str | None,
     cwd: str,
     log_dir: Path,
+    window: OutputWindow | None = None,
 ) -> Verdict:
     """Run one code + CI + review cycle. Returns a Verdict."""
     # --- Code + lint inner loop ---
@@ -734,6 +776,7 @@ def _single_attempt(
         feedback=feedback,
         cwd=cwd,
         log_dir=log_dir,
+        window=window,
     )
 
     if not lint_result.passed:
@@ -810,7 +853,21 @@ def _single_attempt(
     )
     diff = get_diff(cwd)
     logger.info("Starting code review agent (attempt %d)...", attempt)
-    review_result = run_code_review(diff=diff, plan_json=plan_json)
+    review_stream_log = (
+        log_dir / f"issue-{issue_number}" / f"review-stream-{attempt}.log"
+    )
+
+    if window:
+        window.start("reviewer")
+    review_result = run_code_review(
+        diff=diff,
+        plan_json=plan_json,
+        on_line=window.update_line if window else None,
+        log_file=review_stream_log if window else None,
+    )
+    if window:
+        window.stop()
+
     save_output(
         issue_number,
         "code-review",
