@@ -95,40 +95,40 @@
 
 ### 2.2 Coder Agent
 
-**Purpose:** Execute the plan — write code, write tests, and commit to a feature branch.
+**Purpose:** Execute the plan — write code on a feature branch. The Coder has no shell access; the orchestrator owns the git lifecycle (branch creation, committing) and all validation (lint, tests).
 
 #### Inputs
 | Source | What |
 |---|---|
 | Planner output | Filtered plan (plan_steps, affected_files, acceptance_criteria only — compact JSON, no indent) |
-| Repository | Full codebase access via Claude Code tools |
-| CLAUDE.md | Coding conventions, architecture, test patterns |
+| Repository | Read/write file access via Claude Code tools (no Bash) |
+| Conventions | Injected inline from `quil/prompts/conventions.md` at prompt-build time |
 
 #### Process
-1. Create branch from `develop`: `git checkout -b <branch_name> develop`
+1. _(Orchestrator creates/switches to branch before invoking coder)_
 2. For each `plan_step`, read the target file, make the change
-3. Follow all CLAUDE.md conventions:
+3. Follow conventions (injected into prompt):
    - Plain function tests (no `class Test*`)
    - `APIClient` with `force_authenticate`
    - `_` for unused variables (not `dummy`)
    - No `from __future__ import annotations`
    - `[DEBUG]` prefix on any debug prints
-4. Commit with descriptive message (no co-author lines per CLAUDE.md)
+4. _(Orchestrator commits with `--no-verify` after coder exits)_
 
-Note: The Coder does **not** run lint — that is handled by the orchestrator's lint sensor after the Coder finishes. This keeps the Coder focused on writing code and avoids duplicate work.
+The Coder has **no Bash access** — it cannot run lint, tests, git, or any shell commands. Tools are restricted to `Read`, `Glob`, `Grep`, `Edit`, `Write`. This prevents the Coder from spinning on pre-existing lint violations or running tests (both are orchestrator responsibilities).
 
 #### Output
-- A branch with one or more commits implementing the plan
-- A summary of changes made (files modified, lines changed)
+- Modified files on the feature branch (uncommitted — orchestrator commits)
+- A summary of changes made and any deviations from the plan
 
 #### Done Criteria
 - All plan steps addressed (or explicitly noted as deferred with rationale)
 - Code compiles (no syntax errors)
-- Branch is committed and ready for review
+- Files are modified and ready for orchestrator to commit
 
 #### Feedback Sources
 - **Reviewer agent:** Rejection feedback with specific file:line references and instructions
-- **Linter (Ruff):** Direct sensor — `select = ["ALL"]` provides comprehensive checks. Ruff output is already LLM-parseable.
+- **Linter (Ruff):** Via orchestrator — only *new* violations (above baseline) are fed back. Pre-existing violations are filtered out.
 - **Self-check:** Verifies all plan steps were addressed
 
 #### Two-Tier Retry Loop (implemented)
@@ -225,9 +225,11 @@ The orchestrator is a Python CLI (`quil/orchestrator.py`, entry point `quil`):
 2. **Dispatch** Planner: `claude --print -p "<prompt>" --allowedTools Read,Glob,Grep,Bash(git log:*)`
 3. **Gate** on human approval (all plans, regardless of complexity)
 4. **Code + lint inner loop:**
-   - Dispatch Coder: `claude --print -p "<prompt>" --allowedTools Read,Glob,Grep,Edit,Write,Bash`
-   - Run local lint on changed files
-   - If lint fails → feed output back to Coder (up to 2 fast retries, no push)
+   - Create/switch to feature branch
+   - Dispatch Coder: `claude --print -p "<prompt>" --allowedTools Read,Glob,Grep,Edit,Write` (no Bash)
+   - Commit changes with `git commit --no-verify`
+   - Run local lint on changed files (baseline-aware — only new violations fail)
+   - If lint fails → feed new violations back to Coder (up to 2 fast retries, no push)
 5. **Push** branch, **create draft PR** (first attempt only, triggers CI)
 6. **Wait for CI** (polls up to 120s for run to appear, then watches completion)
 7. **Detect CI status** via check-run annotations (not run conclusion, due to `continue-on-error`)
@@ -360,28 +362,13 @@ Added `quil/settings/coder.json` with `permissions.deny` rules that block `Edit`
 **Optional next step — pyproject.toml guard sensor (defense-in-depth):**
 Add a check in the orchestrator that rejects any diff touching ruff config in `pyproject.toml`. An automated agent should never alter the project's lint rules — that's a human decision. Implementation: after `get_changed_files()`, if `pyproject.toml` is in the list, fail immediately and feed back: "You modified pyproject.toml. Revert your changes to that file and fix the lint violations in the code instead." This would catch changes made via `Bash` (e.g. `sed`) that bypass the Edit/Write deny rules.
 
-#### Lint sensor flags baseline violations on touched files
+#### ~~Lint sensor flags baseline violations on touched files~~ — FIXED (PR #10)
 
-The lint inner loop runs `ruff check` on all changed files, but many files (e.g. `asset.py`) have pre-existing baseline violations like `DJ001` (`null=True` on `CharField`). When the Coder edits a file for legitimate reasons, ruff flags these old violations as failures. The Coder can't fix them without going out of scope, so it loops until the lint retry cap is hit.
+The lint inner loop was running `ruff check` on changed files and failing on pre-existing violations like `DJ001`. The Coder couldn't fix them without going out of scope, so it looped until the retry cap.
 
-**Recommended fix — Planner snapshots per-file lint baseline:**
+**Fix:** The orchestrator now snapshots lint violations (`snapshot_lint()` in `agents.py`) on the plan's `affected_files` *before* the coder runs. After the coder finishes, `run_lint()` compares `(file, rule_code)` counts against the baseline. Only violations where the count *increased* are treated as new failures. Pre-existing violations are filtered out of the feedback sent to the coder.
 
-Have the Planner run `ruff check --output-format json` on the affected files as part of planning. The plan JSON would include a `lint_baseline` field:
-
-```json
-{
-  "lint_baseline": {
-    "blueflow/models/asset.py": ["DJ001:37", "DJ001:39", "ERA001:145"],
-    "blueflow/views/asset.py": ["ARG001:22"]
-  }
-}
-```
-
-The lint sensor then diffs against this snapshot — any violation not in the plan's baseline is new. This is better than filtering against the global `baseline.json` because:
-- It's scoped to exactly the files in play
-- It's always fresh (captured at plan time, not periodically updated)
-- Ruff with `--output-format json` gives file + line + rule per violation, so the diff is trivial
-- No changes needed to the global baseline maintenance workflow
+The snapshot is taken by the orchestrator (not the planner), keeping it scoped to the files in play and always fresh. Uses `ruff check --output-format json` for structured parsing.
 
 #### Pipeline failure comments bloat the planner prompt on retries
 
@@ -502,7 +489,7 @@ cmd = [
     "--model", "sonnet",
     "--append-system-prompt", conventions_text,
     "-p", prompt,
-    "--allowedTools", "Read", "Glob", "Grep", "Edit", "Write", "Bash",
+    "--allowedTools", "Read", "Glob", "Grep", "Edit", "Write",
     "--max-budget-usd", "10",
 ]
 
@@ -523,8 +510,8 @@ cmd = [
 - Coder lint retries: Sonnet or Haiku + `--effort low` (mechanical fixes)
 - **Future:** Make model selection configurable (CLI flag or config file) rather than hardcoded, so operators can tune cost/quality per stage.
 
-**Future: Orchestrator-managed git lifecycle:**
-The coder currently handles branch creation, committing, and ruff via `Bash(git:*)` and `Bash(ruff:*)`. Ideally the orchestrator would own this entirely — create the branch before invoking the coder, commit after it exits, and run lint as a sensor. This would let us remove Bash from the coder completely. The blocker is that the coder runs as a single `--print` subprocess: we can't interrupt it mid-session to commit incrementally. Solving this requires a start/stop strategy — either `--resume` to pause and re-enter the session, `--output-format stream-json` with an event-driven orchestrator, or breaking the plan into one coder invocation per step. Worth exploring once the `--resume`-based lint retry approach (above) is proven.
+**~~Future:~~ Orchestrator-managed git lifecycle — DONE (PR #10):**
+The orchestrator now owns the full git lifecycle. `_checkout_branch()` creates or switches to the feature branch before invoking the coder. `_commit_changes()` runs `git add -A && git commit --no-verify` after the coder exits. Bash has been removed from the coder's `--allowedTools` entirely — the coder only has `Read`, `Glob`, `Grep`, `Edit`, `Write`. This eliminates the coder's ability to run lint, tests, or any shell commands.
 
 **Other speed wins identified (2026-04-18):**
 - Stop watching `lint.yml` in CI — local lint is already authoritative, the orchestrator ignores CI lint results anyway. Removes one full CI poll cycle.
@@ -577,7 +564,8 @@ The pipeline works end-to-end but is painful to operate. Fix the human touchpoin
 - ~~Create known-failure baseline~~ ✅
 - ~~Add lint short-circuit loop~~ ✅
 - ~~Add CLI-level deny rules for coder~~ ✅ (PR #4)
-- ~~Scope coder Bash to git/ruff only~~ ✅ (PR #4)
+- ~~Scope coder Bash to git/ruff only~~ → ~~Remove Bash from coder entirely~~ ✅ (PR #10 — orchestrator owns git lifecycle)
+- ~~Baseline-aware lint comparison~~ ✅ (PR #10 — only new violations block the coder)
 - Run on 3-5 `chore/` tickets manually — **active, first run completed on issue #65**
 - Human approves every plan, reviews every PR
 - **Goal:** The operator can comfortably run and monitor the pipeline from a terminal

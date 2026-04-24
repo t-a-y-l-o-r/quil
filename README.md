@@ -55,7 +55,7 @@ quil update-baseline
 ## Pipeline stages
 
 1. **Planner** reads the GitHub issue and repo state, then produces a structured JSON implementation plan. All plans require human approval.
-2. **Coder** executes the plan on a feature branch with an inner lint retry loop (up to 2 fast retries before pushing).
+2. **Coder** executes the plan by writing code (no shell access). The orchestrator handles branch creation, committing (`--no-verify`), and lint with a baseline-aware retry loop (up to 2 fast retries before pushing).
 3. **Reviewer** combines deterministic sensors (lint, tests, CI) with an LLM code review to produce a pass/fail verdict. On rejection, structured feedback goes back to the Coder (max 3 full attempts).
 
 ## State tracking
