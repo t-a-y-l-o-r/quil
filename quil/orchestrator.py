@@ -12,6 +12,9 @@ from pathlib import Path
 import click
 
 from quil.agents import (
+    CODE_REVIEW_TIMEOUT,
+    CODER_TIMEOUT,
+    PLANNER_TIMEOUT,
     SensorResult,
     create_draft_pr,
     get_changed_files,
@@ -502,7 +505,7 @@ def _phase_plan(
     stream_log = log_dir / f"issue-{issue_number}" / "planner-stream.log"
 
     if window:
-        window.start("planner")
+        window.start("planner", timeout=PLANNER_TIMEOUT)
     plan_result = run_planner(
         issue_context,
         on_line=window.update_line if window else None,
@@ -715,7 +718,7 @@ def _code_and_lint(
         )
 
         if window:
-            window.start("coder")
+            window.start("coder", timeout=CODER_TIMEOUT)
         coder_result = run_coder(
             plan,
             branch_name,
@@ -870,7 +873,7 @@ def _single_attempt(
     )
 
     if window:
-        window.start("reviewer")
+        window.start("reviewer", timeout=CODE_REVIEW_TIMEOUT)
     review_result = run_code_review(
         diff=diff,
         plan_json=plan_json,

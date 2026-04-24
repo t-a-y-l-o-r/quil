@@ -5,7 +5,7 @@ Layout (H = terminal height, W = terminal width):
     Row 1:             ┌─── quil ───────────────────────┐
     Rows 2..S:         │ [INFO] log lines (scroll)      │  <- scroll region
     Row S+1:           └────────────────────────────────┘
-    Row S+2:           ┌─── coder ──────────────────────┐
+    Row S+2:           ┌─── coder (0:42 / 10:00) ──────┐
     Rows S+3..S+12:    │ stream content                 │
     Row S+13:          └────────────────────────────────┘
 
@@ -19,11 +19,18 @@ import logging
 import os
 import sys
 import threading
+import time
 from collections import deque
 
 
 STREAM_HEIGHT = 10
 MIN_LOG_ROWS = 3
+
+# ANSI color codes
+_RESET = "\033[0m"
+_DIM = "\033[2m"
+_QUIL_COLOR = "\033[36m"  # cyan
+_STREAM_COLOR = "\033[33m"  # yellow
 
 
 class OutputWindow:
@@ -38,6 +45,8 @@ class OutputWindow:
         self._stream_lines: deque[str] = deque(maxlen=STREAM_HEIGHT)
         self._stream_label: str = ""
         self._stream_active: bool = False
+        self._stream_timeout: int = 0
+        self._stream_start: float = 0.0
         self._layout_active: bool = False
         self._lock = threading.Lock()
         self._is_tty: bool = sys.stderr.isatty()
@@ -72,29 +81,29 @@ class OutputWindow:
         out.append("\033[2J\033[H")  # clear screen, cursor home
 
         # Quil top border (row 1)
-        out.append(self._top_border("quil"))
+        out.append(self._quil_top_border())
         out.append("\n")
 
         # Empty quil content rows (scroll region)
         for _ in range(self._scroll_bottom - 2 + 1):
-            out.append(self._content_line(""))
+            out.append(self._quil_content_line(""))
             out.append("\n")
 
         # Quil bottom border
-        out.append(self._bottom_border())
+        out.append(self._quil_bottom_border())
         out.append("\n")
 
         # Stream top border (no label yet)
-        out.append(self._top_border(""))
+        out.append(self._stream_top_border())
         out.append("\n")
 
         # Empty stream content
         for _ in range(STREAM_HEIGHT):
-            out.append(self._content_line(""))
+            out.append(self._stream_content_line(""))
             out.append("\n")
 
         # Stream bottom border
-        out.append(self._bottom_border())
+        out.append(self._stream_bottom_border())
 
         # Set scroll region to quil content area (row 2 through scroll_bottom)
         out.append(f"\033[2;{self._scroll_bottom}r")
@@ -113,7 +122,7 @@ class OutputWindow:
         if not self._layout_active:
             return
         self._layout_active = False
-        sys.stderr.write("\033[r")  # reset scroll region
+        sys.stderr.write(f"\033[r{_RESET}")  # reset scroll region + colors
         sys.stderr.write(f"\033[{self._h};1H\n")  # cursor to bottom
         sys.stderr.flush()
 
@@ -121,10 +130,12 @@ class OutputWindow:
     # Stream box control
     # ------------------------------------------------------------------
 
-    def start(self, label: str) -> None:
+    def start(self, label: str, *, timeout: int = 0) -> None:
         """Activate the stream box for a new agent phase."""
         with self._lock:
             self._stream_label = label
+            self._stream_timeout = timeout
+            self._stream_start = time.monotonic()
             self._stream_lines.clear()
             self._stream_active = True
             if self._layout_active:
@@ -136,6 +147,7 @@ class OutputWindow:
             self._stream_active = False
             self._stream_lines.clear()
             self._stream_label = ""
+            self._stream_timeout = 0
             if self._layout_active:
                 self._redraw_stream()
 
@@ -161,7 +173,7 @@ class OutputWindow:
             sys.stderr.flush()
             return
 
-        formatted = self._content_line(text.rstrip("\n"))
+        formatted = self._quil_content_line(text.rstrip("\n"))
 
         sys.stderr.write("\033[s")  # save cursor
         sys.stderr.write("\033[S")  # scroll region up one line
@@ -194,19 +206,33 @@ class OutputWindow:
 
         sys.stderr.write("\033[s")  # save cursor
 
-        # Update stream top border with current label
-        self._write_at(stream_top_row, self._top_border(self._stream_label))
+        # Update stream top border with label and timer
+        self._write_at(stream_top_row, self._stream_top_border())
 
         # Update content lines
         for i in range(STREAM_HEIGHT):
             row = content_start + i
             if i < len(self._stream_lines):
-                self._write_at(row, self._content_line(self._stream_lines[i]))
+                self._write_at(
+                    row, self._stream_content_line(self._stream_lines[i])
+                )
             else:
-                self._write_at(row, self._content_line(""))
+                self._write_at(row, self._stream_content_line(""))
 
         sys.stderr.write("\033[u")  # restore cursor
         sys.stderr.flush()
+
+    def _elapsed_str(self) -> str:
+        """Format the elapsed / max timer for the stream border."""
+        if not self._stream_active:
+            return ""
+        elapsed = int(time.monotonic() - self._stream_start)
+        em, es = divmod(elapsed, 60)
+        parts = f"{em}:{es:02d}"
+        if self._stream_timeout > 0:
+            tm, ts = divmod(self._stream_timeout, 60)
+            parts += f" / {tm}:{ts:02d}"
+        return parts
 
     def _terminal_size(self) -> tuple[int, int]:
         try:
@@ -218,22 +244,48 @@ class OutputWindow:
     def _inner_width(self) -> int:
         return self._w - 4  # "│ " + content + " │"
 
-    def _top_border(self, label: str) -> str:
-        if label:
-            label_part = f"─── {label} "
-        else:
-            label_part = "─"
+    # --- Quil box borders (cyan) ---
+
+    def _quil_top_border(self) -> str:
+        label_part = "─── quil "
         remaining = self._w - 2 - len(label_part)
-        return f"┌{label_part}{'─' * max(remaining, 0)}┐"
+        border = f"┌{label_part}{'─' * max(remaining, 0)}┐"
+        return f"{_QUIL_COLOR}{border}{_RESET}"
 
-    def _bottom_border(self) -> str:
-        return f"└{'─' * (self._w - 2)}┘"
+    def _quil_bottom_border(self) -> str:
+        border = f"└{'─' * (self._w - 2)}┘"
+        return f"{_QUIL_COLOR}{border}{_RESET}"
 
-    def _content_line(self, text: str) -> str:
+    def _quil_content_line(self, text: str) -> str:
         inner = self._inner_width()
         truncated = text[:inner]
         padded = truncated.ljust(inner)
-        return f"│ {padded} │"
+        return f"{_QUIL_COLOR}│{_RESET} {padded} {_QUIL_COLOR}│{_RESET}"
+
+    # --- Stream box borders (yellow) ---
+
+    def _stream_top_border(self) -> str:
+        if self._stream_label:
+            timer = self._elapsed_str()
+            if timer:
+                label_part = f"─── {self._stream_label} ({timer}) "
+            else:
+                label_part = f"─── {self._stream_label} "
+        else:
+            label_part = "─"
+        remaining = self._w - 2 - len(label_part)
+        border = f"┌{label_part}{'─' * max(remaining, 0)}┐"
+        return f"{_STREAM_COLOR}{border}{_RESET}"
+
+    def _stream_bottom_border(self) -> str:
+        border = f"└{'─' * (self._w - 2)}┘"
+        return f"{_STREAM_COLOR}{border}{_RESET}"
+
+    def _stream_content_line(self, text: str) -> str:
+        inner = self._inner_width()
+        truncated = text[:inner]
+        padded = truncated.ljust(inner)
+        return f"{_STREAM_COLOR}│{_RESET} {_DIM}{padded}{_RESET} {_STREAM_COLOR}│{_RESET}"
 
     def _write_at(self, row: int, text: str) -> None:
         sys.stderr.write(f"\033[{row};1H\033[2K{text}")
