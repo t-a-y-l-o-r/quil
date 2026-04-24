@@ -18,6 +18,7 @@ import atexit
 import logging
 import os
 import sys
+import textwrap
 import threading
 import time
 from collections import deque
@@ -31,6 +32,7 @@ _RESET = "\033[0m"
 _DIM = "\033[2m"
 _QUIL_COLOR = "\033[36m"  # cyan
 _STREAM_COLOR = "\033[33m"  # yellow
+_PLAN_COLOR = "\033[32m"  # green
 
 
 class OutputWindow:
@@ -124,6 +126,65 @@ class OutputWindow:
         self._layout_active = False
         sys.stderr.write(f"\033[r{_RESET}")  # reset scroll region + colors
         sys.stderr.write(f"\033[{self._h};1H\n")  # cursor to bottom
+        sys.stderr.flush()
+
+    # ------------------------------------------------------------------
+    # Plan display (full-screen takeover)
+    # ------------------------------------------------------------------
+
+    def pause_layout(self) -> None:
+        """Temporarily exit the two-box layout for full-screen content."""
+        if not self._layout_active:
+            return
+        self._layout_active = False
+        sys.stderr.write("\033[r")  # reset scroll region
+        sys.stderr.write("\033[2J\033[H")  # clear screen, cursor home
+        sys.stderr.write(_RESET)
+        sys.stderr.flush()
+
+    def resume_layout(self) -> None:
+        """Restore the two-box layout after a pause."""
+        if self._layout_active:
+            return
+        self.activate()
+
+    def show_plan(self, text: str) -> None:
+        """Clear screen and display plan text in a bordered box.
+
+        Long lines are wrapped to fit within the border. The layout
+        is paused so the plan can use the full terminal height.
+        """
+        with self._lock:
+            self.pause_layout()
+
+        h, w = self._terminal_size()
+        inner = w - 4  # "│ " + content + " │"
+
+        # Wrap each source line to fit inside the border
+        wrapped: list[str] = []
+        for line in text.split("\n"):
+            if not line.strip():
+                wrapped.append("")
+            elif len(line) <= inner:
+                wrapped.append(line)
+            else:
+                wrapped.extend(textwrap.wrap(line, width=inner))
+
+        # Build the bordered output
+        label_part = "─── Plan "
+        remaining = w - 2 - len(label_part)
+        top = f"{_PLAN_COLOR}┌{label_part}{'─' * max(remaining, 0)}┐{_RESET}"
+        bottom = f"{_PLAN_COLOR}└{'─' * (w - 2)}┘{_RESET}"
+
+        out: list[str] = [top]
+        for line in wrapped:
+            truncated = line[:inner]
+            padded = truncated.ljust(inner)
+            out.append(f"{_PLAN_COLOR}│{_RESET} {padded} {_PLAN_COLOR}│{_RESET}")
+        out.append(bottom)
+        out.append("")  # blank line before the prompt
+
+        sys.stderr.write("\n".join(out) + "\n")
         sys.stderr.flush()
 
     # ------------------------------------------------------------------

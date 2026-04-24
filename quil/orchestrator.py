@@ -594,16 +594,15 @@ def _gate_human_approval(
     window: OutputWindow | None = None,
 ) -> bool:
     """Display a human-readable plan summary and prompt for approval."""
-    summary = (
-        "\n┌─── Proposed Plan ───\n"
-        f"{_format_plan_summary(plan)}\n"
-        "└─────────────────────\n"
-    )
+    summary = _format_plan_summary(plan)
     if window:
-        window.write(summary)
+        window.show_plan(summary)
     else:
         click.echo(summary)
-    return click.confirm("Approve this plan?")
+    approved = click.confirm("Approve this plan?")
+    if window:
+        window.resume_layout()
+    return approved
 
 
 def _phase_code_review_loop(
