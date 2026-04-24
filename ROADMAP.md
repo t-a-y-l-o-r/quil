@@ -100,7 +100,7 @@
 #### Inputs
 | Source | What |
 |---|---|
-| Planner output | The plan document (JSON) |
+| Planner output | Filtered plan (plan_steps, affected_files, acceptance_criteria only — compact JSON, no indent) |
 | Repository | Full codebase access via Claude Code tools |
 | CLAUDE.md | Coding conventions, architecture, test patterns |
 
@@ -267,8 +267,8 @@ Each agent runs as a **separate Claude Code session** with a tailored system pro
 # Planner
 claude --print -p "You are the Planner agent. $(cat planner-prompt.md) Issue: $(gh issue view 42 --json title,body,labels,comments)"
 
-# Coder (with worktree isolation)
-claude -p "You are the Coder agent. $(cat coder-prompt.md) Plan: $(cat /tmp/plan-42.json)"
+# Coder (receives filtered plan — only plan_steps, affected_files, acceptance_criteria)
+claude -p "You are the Coder agent. $(cat coder-prompt.md) Plan: <filtered subset of plan-42.json>"
 
 # Reviewer
 claude --print -p "You are the Reviewer agent. $(cat reviewer-prompt.md) Branch: feature/issue-42-foo Diff: $(git diff develop...feature/issue-42-foo)"
