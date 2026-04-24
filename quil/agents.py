@@ -150,7 +150,10 @@ def run_planner(
 ) -> PlanResult:
     """Invoke the Planner agent to produce an implementation plan."""
     template = load_prompt("planner")
-    prompt = template.replace("{issue}", issue_context)
+    conventions = load_prompt("conventions")
+    prompt = template.replace("{issue}", issue_context).replace(
+        "{conventions}", conventions
+    )
 
     if on_line is not None:
         # Streaming path: use stream-json for real-time event output
@@ -253,11 +256,13 @@ def run_coder(
     plan_json = json.dumps(coder_plan)
 
     template = load_prompt("coder")
+    conventions = load_prompt("conventions")
     feedback_section = f"\n\n## Reviewer Feedback\n{feedback}" if feedback else ""
     prompt = (
         template.replace("{plan}", plan_json)
         .replace("{branch_name}", branch_name)
         .replace("{feedback_section}", feedback_section)
+        .replace("{conventions}", conventions)
     )
 
     cmd = [

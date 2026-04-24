@@ -36,9 +36,9 @@ These paths require human review and must not be changed by agents:
 - `conftest.py` (root) — shared test infrastructure; changes affect all tests
 - Any file outside `<repo>/` and `tests/` without explicit plan approval
 
-## Validation Commands
+## Validation Commands (Orchestrator/Reviewer only)
 
-Run all of these before opening a PR:
+These are run by the orchestrator and reviewer — **not** by the Coder agent. The Coder must not run lint or tests.
 
 ```bash
 uv run ruff check .              # Must exit 0
