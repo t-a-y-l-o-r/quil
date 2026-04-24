@@ -322,17 +322,15 @@ Both use `continue-on-error: true` to tolerate baseline issues. The orchestrator
 
 ## 5.4 Known Operational Issues
 
-#### No live visibility into running agents
+#### ~~No live visibility into running agents~~ — FIXED (streaming IO)
 
-All agent invocations use `subprocess.run(..., capture_output=True)`, which buffers all output until the process exits (up to 10 minutes for the Coder). There is no streaming, progress indicator, or way to tell if an agent is working, stuck, or hung waiting for a permission prompt.
+Agent invocations now use `--output-format stream-json --verbose` with `subprocess.Popen` for real-time NDJSON event streaming. Each event (tool calls, text output, results) is parsed, displayed in a 10-line scrolling window in the terminal, and written to per-agent stream log files (`*-stream.log`). The `OutputWindow` uses ANSI escape codes to render a boxed region that coexists with orchestrator log lines above it.
 
-**Impact:** An agent that triggers a Claude CLI permission gate (most likely the Coder, which has unrestricted `Bash` access) will silently block until the subprocess timeout kills it. The operator has no way to distinguish "thinking" from "hung."
+**Key discovery:** `--output-format stream-json --verbose` emits NDJSON events in real-time (flushed per line), unlike `--print` mode which buffers all output until exit. Each event carries a `type` field (`system`, `assistant`, `user`, `result`). `assistant` events contain model text and tool_use calls with file paths and commands, giving operators live visibility into agent activity.
 
-**Recommended fixes:**
-- Add `--no-user-input` to all `claude` invocations to prevent permission prompts from blocking
-- Switch from `subprocess.run` to `subprocess.Popen` with line-by-line stdout streaming
-- Maintain a stable symlink at `quil/.logs/current.log` that always points to the active agent's log file. The orchestrator updates the symlink each time it starts a new agent phase (planner, coder, code-review). The operator runs `tail -f quil/.logs/current.log` in a second terminal (or split pane) for live visibility. This is the lightest approach — no new dependencies, no TUI framework, works with any terminal setup.
-- Prefix streamed lines with the agent name (e.g. `[planner]`, `[coder]`) so the `tail -f` output is unambiguous when the symlink swaps between phases
+**Implementation:** `quil/stream.py` (StreamingProcess + NDJSON parser), `quil/display.py` (OutputWindow + WindowAwareHandler). The streaming path is opt-in via `on_line`/`log_file` kwargs on agent functions — standalone commands (`quil plan`, `quil code`, `quil review`) retain the original `subprocess.run` behavior. The full pipeline (`quil run`) enables streaming automatically.
+
+**Remaining:** `--no-user-input` flag, stable symlink at `quil/.logs/current.log`, stall detection via filesystem polling (see §5.4 below)
 
 #### ~~[PRIORITY] Local lint failure does not short-circuit the pipeline~~ — FIXED (PR #93)
 
@@ -463,9 +461,9 @@ Use SIGINT for the debug interrupt. Use `atexit.register()` to ensure cleanup (l
 
 If the Coder hasn't made a meaningful change (file edit, git commit) within N minutes, `process.terminate()` the subprocess and raise an exception. The orchestrator should NOT clean up or transition labels — leave the branch exactly as-is for human inspection.
 
-**Failed experiment (PRs #96-98, reverted):** Attempted stdout-based stall detection using `Popen` with a reader thread. Failed because Claude CLI's `--print` mode buffers all output at the application level until completion — zero bytes reach stdout/stderr while the agent is working. Tried `stdbuf -oL` to force line buffering but it has no effect because the CLI is not a C/libc process (likely Node.js or Rust). Both stdout and stderr logs were empty despite the agent actively editing files on disk.
+**Failed experiment (PRs #96-98, reverted):** Attempted stdout-based stall detection using `Popen` with a reader thread and `--print` mode. Failed because `--print` buffers all output at the application level until completion.
 
-**Correct approach (not yet implemented):** Monitor filesystem/git activity instead of stdout. Poll `git status` or check file mtimes periodically. If files are changing, the agent is working. This requires no cooperation from the CLI's output buffering. The `Popen` streaming change would also help if paired with `--output-format stream-json`, which may use a different buffering strategy than `--print`.
+**Resolution:** The streaming IO implementation uses `--output-format stream-json --verbose` instead of `--print`. This format flushes NDJSON events in real-time, providing live visibility into agent activity. Stall detection can now be built on top of the event stream (no events for N minutes = stalled). Filesystem polling remains a valid complementary approach for cases where the CLI is active but the agent is looping without tool calls.
 
 **Recommendation:** Option A. It's battle-tested, requires ~15 lines of code, and the "double Ctrl-C to kill" pattern is intuitive to anyone who's used a terminal. Ctrl-D for kill is less reliable because the agent subprocess may have stdin and the EOF may not propagate cleanly.
 
@@ -560,17 +558,17 @@ The pipeline works end-to-end but is painful to operate. Fix the human touchpoin
 - Show a human-friendly summary: classification, branch, steps, risks — not a wall of JSON
 - This is the most critical touchpoint in the pipeline; it must be legible
 
-#### 1b. Agent output capture and live tailing
-- Switch from `subprocess.run(capture_output=True)` to `subprocess.Popen` with line-by-line stdout streaming
-- Write all agent output to log files in real time (not buffered until exit)
-- Maintain a stable symlink at `quil/.logs/current.log` pointing to the active agent's log file; update the symlink each time a new phase starts (planner, coder, code-review)
-- Prefix streamed lines with the agent name (e.g. `[planner]`, `[coder]`) so `tail -f` output is unambiguous across phase transitions
-- Operator runs `tail -f quil/.logs/current.log` in a second terminal for live visibility
+#### ~~1b. Agent output capture and live tailing~~ — DONE
+- ✅ Switched to `subprocess.Popen` with `--output-format stream-json --verbose` for real-time NDJSON streaming
+- ✅ Agent output written to per-phase stream log files (`*-stream.log`) in real time
+- ✅ Lines labeled with agent name (`planner`, `coder`, `reviewer`) via StreamingProcess label
+- TODO: Stable symlink at `quil/.logs/current.log` for `tail -f` (low priority — the 10-line window replaces most of this need)
 
-#### 1c. Spinner and status reporting
-- Add a CLI spinner (e.g. `click.progressbar` or `rich.status`) to the main orchestrator terminal showing the current phase and elapsed time
-- Display transitions: `[planner] Starting...`, `[planner] Plan received (12s)`, `[coder] Starting (attempt 1)...`, `[coder] Lint retry 1/2...`, `[ci] Waiting for run...`, etc.
-- On completion of each phase, print a one-line summary (e.g. plan classification, changed file count, lint pass/fail, CI status, review verdict)
+#### ~~1c. Spinner and status reporting~~ — DONE (via output window)
+- ✅ 10-line scrolling window shows real-time agent activity (tool calls, text output) in a Unicode box
+- ✅ Window coexists with orchestrator `[INFO]`/`[WARNING]` log lines via `WindowAwareHandler`
+- ✅ Window activates per phase (`planner`, `coder`, `reviewer`) and deactivates between phases
+- ✅ Non-TTY fallback: window disabled when output is piped, log files still capture everything
 
 #### 1d. Remaining from previous Phase 1
 - ~~Build orchestrator script~~ ✅

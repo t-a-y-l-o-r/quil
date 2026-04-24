@@ -7,6 +7,9 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
+
+from quil.stream import StreamingProcess
 
 logger = logging.getLogger(__name__)
 
@@ -139,11 +142,51 @@ def load_plan_json(
     return json.loads(path.read_text())
 
 
-def run_planner(issue_context: str) -> PlanResult:
+def run_planner(
+    issue_context: str,
+    *,
+    on_line: Callable[[str, str], None] | None = None,
+    log_file: Path | None = None,
+) -> PlanResult:
     """Invoke the Planner agent to produce an implementation plan."""
     template = load_prompt("planner")
     prompt = template.replace("{issue}", issue_context)
 
+    if on_line is not None:
+        # Streaming path: use stream-json for real-time event output
+        cmd = [
+            "claude",
+            "--print",
+            "-p",
+            prompt,
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--allowedTools",
+            "Read",
+            "Glob",
+            "Grep",
+            "Bash(git log:*)",
+            "--max-budget-usd",
+            "5",
+        ]
+        proc = StreamingProcess(
+            cmd,
+            "planner",
+            log_file=log_file,
+            on_line=on_line,
+            timeout=PLANNER_TIMEOUT,
+        )
+        try:
+            text = proc.run()
+        except subprocess.TimeoutExpired:
+            logger.warning("Planner timed out after %ds", PLANNER_TIMEOUT)
+            return PlanResult(raw_output=proc._partial_output(), plan=None)
+
+        plan = extract_json(text)
+        return PlanResult(raw_output=text, plan=plan)
+
+    # Non-streaming path: original subprocess.run behavior
     try:
         result = subprocess.run(
             [
@@ -194,6 +237,9 @@ def run_coder(
     branch_name: str,
     feedback: str | None = None,
     cwd: str | None = None,
+    *,
+    on_line: Callable[[str, str], None] | None = None,
+    log_file: Path | None = None,
 ) -> CoderResult:
     """Invoke the Coder agent to implement the plan.
 
@@ -234,19 +280,37 @@ def run_coder(
         "10",
     ]
 
-    try:
-        result = subprocess.run(
+    if on_line is not None:
+        cmd.extend(["--output-format", "stream-json", "--verbose"])
+        proc = StreamingProcess(
             cmd,
-            capture_output=True,
-            text=True,
+            "coder",
+            log_file=log_file,
+            on_line=on_line,
             timeout=CODER_TIMEOUT,
             cwd=cwd,
-            check=False,
         )
-    except subprocess.TimeoutExpired as exc:
-        logger.warning("Coder timed out after %ds", CODER_TIMEOUT)
-        raw = _recover_stdout(exc)
-        return CoderResult(raw_output=raw, branch=branch_name)
+        try:
+            raw = proc.run()
+        except subprocess.TimeoutExpired:
+            logger.warning("Coder timed out after %ds", CODER_TIMEOUT)
+            raw = proc._partial_output()
+            return CoderResult(raw_output=raw, branch=branch_name)
+    else:
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=CODER_TIMEOUT,
+                cwd=cwd,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            logger.warning("Coder timed out after %ds", CODER_TIMEOUT)
+            raw = _recover_stdout(exc)
+            return CoderResult(raw_output=raw, branch=branch_name)
+        raw = result.stdout
 
     branch_result = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"],
@@ -257,10 +321,16 @@ def run_coder(
     )
     branch = branch_result.stdout.strip() or branch_name
 
-    return CoderResult(raw_output=result.stdout, branch=branch)
+    return CoderResult(raw_output=raw, branch=branch)
 
 
-def run_code_review(diff: str, plan_json: str) -> CodeReviewResult:
+def run_code_review(
+    diff: str,
+    plan_json: str,
+    *,
+    on_line: Callable[[str, str], None] | None = None,
+    log_file: Path | None = None,
+) -> CodeReviewResult:
     """Invoke the code review agent to analyze the diff against the plan.
 
     This agent only performs code review — no lint or test analysis.
@@ -268,6 +338,41 @@ def run_code_review(diff: str, plan_json: str) -> CodeReviewResult:
     """
     template = load_prompt("code_review")
     prompt = template.replace("{plan}", plan_json).replace("{diff}", diff)
+
+    if on_line is not None:
+        cmd = [
+            "claude",
+            "--print",
+            "-p",
+            prompt,
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--allowedTools",
+            "Read",
+            "Glob",
+            "Grep",
+            "--max-budget-usd",
+            "5",
+        ]
+        proc = StreamingProcess(
+            cmd,
+            "reviewer",
+            log_file=log_file,
+            on_line=on_line,
+            timeout=CODE_REVIEW_TIMEOUT,
+        )
+        try:
+            raw = proc.run()
+        except subprocess.TimeoutExpired:
+            logger.warning("Code review timed out after %ds", CODE_REVIEW_TIMEOUT)
+            return CodeReviewResult(
+                raw_output=proc._partial_output(), findings=None
+            )
+
+        parsed = extract_json(raw)
+        findings = parsed.get("findings") if parsed else None
+        return CodeReviewResult(raw_output=raw, findings=findings)
 
     try:
         result = subprocess.run(
