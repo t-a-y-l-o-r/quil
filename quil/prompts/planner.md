@@ -8,9 +8,13 @@ The following GitHub issue needs to be resolved:
 
 {issue}
 
+## Conventions
+
+{conventions}
+
 ## Instructions
 
-1. Read `quil/prompts/conventions.md` for project conventions and file mapping rules.
+1. Follow the conventions above for file mapping, commit rules, and scope boundaries.
 2. Cross-reference the issue against the current state of the codebase.
 3. Identify all files that need to be modified or created.
 4. Classify the ticket type (feature, bug, or chore).

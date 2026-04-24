@@ -6,7 +6,11 @@
       "Edit(**/pyproject.toml)",
       "Write(**/test/**)",
       "Write(**/tests/**)",
-      "Write(**/pyproject.toml)"
+      "Write(**/pyproject.toml)",
+      "Bash(uv *)",
+      "Bash(ruff *)",
+      "Bash(pytest *)",
+      "Bash(python -m pytest*)"
     ]
   }
 }
