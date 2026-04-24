@@ -201,14 +201,13 @@ def code_cmd(
     repo = detect_repo()
     issue = fetch_issue(repo, issue_number)
     branch_name = derive_branch_name(issue)
-    plan_json = json.dumps(plan, indent=2)
     cwd = str(Path.cwd())
 
     logger.info("Branch: %s", branch_name)
 
     lint_result = _code_and_lint(
         issue_number,
-        plan_json,
+        plan,
         branch_name,
         attempt=1,
         feedback=feedback,
@@ -646,7 +645,7 @@ MAX_LINT_RETRIES = 2
 
 def _code_and_lint(
     issue_number: int,
-    plan_json: str,
+    plan: dict,
     branch_name: str,
     *,
     attempt: int,
@@ -670,7 +669,7 @@ def _code_and_lint(
             suffix,
         )
         coder_result = run_coder(
-            plan_json,
+            plan,
             branch_name,
             feedback=feedback,
             cwd=cwd,
@@ -729,7 +728,7 @@ def _single_attempt(
     transition(repo, issue_number, from_label, "agent-coding")
     lint_result = _code_and_lint(
         issue_number,
-        plan_json,
+        plan,
         branch_name,
         attempt=attempt,
         feedback=feedback,

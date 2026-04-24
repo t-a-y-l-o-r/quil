@@ -186,13 +186,26 @@ def run_planner(issue_context: str) -> PlanResult:
     return PlanResult(raw_output=raw, plan=plan)
 
 
+CODER_PLAN_KEYS = ("plan_steps", "affected_files", "acceptance_criteria")
+
+
 def run_coder(
-    plan_json: str,
+    plan: dict,
     branch_name: str,
     feedback: str | None = None,
     cwd: str | None = None,
 ) -> CoderResult:
-    """Invoke the Coder agent to implement the plan."""
+    """Invoke the Coder agent to implement the plan.
+
+    Only the fields the Coder actually needs are forwarded:
+    plan_steps, affected_files, and acceptance_criteria. Metadata
+    fields (issue_number, risks, estimated_complexity, etc.) are
+    used by the orchestrator and human approval gate but are not
+    actionable for the Coder.
+    """
+    coder_plan = {k: plan[k] for k in CODER_PLAN_KEYS if k in plan}
+    plan_json = json.dumps(coder_plan, indent=2)
+
     template = load_prompt("coder")
     feedback_section = f"\n\n## Reviewer Feedback\n{feedback}" if feedback else ""
     prompt = (
