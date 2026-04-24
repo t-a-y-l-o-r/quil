@@ -25,6 +25,7 @@ from quil.agents import (
     run_coder,
     run_lint,
     run_planner,
+    snapshot_lint,
     save_output,
     save_plan_json,
 )
@@ -786,6 +787,18 @@ def _code_and_lint(
     """
     _checkout_branch(branch_name, cwd)
 
+    # Snapshot pre-existing lint violations before the coder touches anything.
+    # Only new violations (count increased per file+rule) will be failures.
+    plan_files = plan.get("affected_files", [])
+    existing_files = [f for f in plan_files if Path(f).exists()]
+    baseline = snapshot_lint(cwd, existing_files) if existing_files else {}
+    if baseline:
+        logger.info(
+            "Lint baseline: %d pre-existing violations across %d files",
+            sum(baseline.values()),
+            len({k[0] for k in baseline}),
+        )
+
     for lint_try in range(1 + MAX_LINT_RETRIES):
         suffix = f" (lint retry {lint_try})" if lint_try > 0 else ""
         logger.info(
@@ -824,7 +837,7 @@ def _code_and_lint(
 
         changed_files = get_changed_files(cwd)
         logger.info("Running lint on %d changed files...", len(changed_files))
-        lint_result = run_lint(cwd, changed_files=changed_files)
+        lint_result = run_lint(cwd, changed_files=changed_files, baseline=baseline)
         logger.info(
             "Lint: %s",
             "PASS" if lint_result.passed else "FAIL",

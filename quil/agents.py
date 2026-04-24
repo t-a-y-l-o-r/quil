@@ -425,17 +425,130 @@ def get_changed_files(
     return [f for f in result.stdout.strip().splitlines() if f.strip()]
 
 
+def snapshot_lint(
+    cwd: str,
+    files: list[str],
+) -> dict[tuple[str, str], int]:
+    """Snapshot current lint violations as {(file, rule): count}.
+
+    Uses ruff's JSON output for structured parsing. Line numbers are
+    intentionally ignored — they shift when code is edited, so we
+    compare per-file rule counts instead.
+    """
+    if not files:
+        return {}
+
+    result = subprocess.run(
+        ["uv", "run", "ruff", "check", "--output-format", "json", *files],
+        capture_output=True,
+        text=True,
+        timeout=LINT_TIMEOUT,
+        cwd=cwd,
+        check=False,
+    )
+
+    counts: dict[tuple[str, str], int] = {}
+    with contextlib.suppress(json.JSONDecodeError):
+        violations = json.loads(result.stdout)
+        for v in violations:
+            key = (v.get("filename", ""), v.get("code", ""))
+            counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _format_new_violations(violations: list[dict]) -> str:
+    """Format new violations into human-readable lint output."""
+    lines = []
+    for v in violations:
+        loc = v.get("location", {})
+        lines.append(
+            f"{v.get('filename', '?')}:{loc.get('row', '?')}:"
+            f"{loc.get('column', '?')}: "
+            f"{v.get('code', '?')} {v.get('message', '')}"
+        )
+    return "\n".join(lines)
+
+
 def run_lint(
     cwd: str,
     changed_files: list[str] | None = None,
+    baseline: dict[tuple[str, str], int] | None = None,
 ) -> SensorResult:
     """Run ruff check and format on changed files only.
 
-    If changed_files is None or empty, checks the whole directory
-    (useful for local dev but not recommended for the pipeline).
+    If baseline is provided, only violations exceeding the baseline
+    counts are treated as failures. This prevents pre-existing
+    violations from blocking the coder.
     """
     targets = changed_files or ["."]
 
+    if baseline is not None:
+        # Baseline-aware mode: use JSON output and diff against baseline
+        check = subprocess.run(
+            ["uv", "run", "ruff", "check", "--output-format", "json", *targets],
+            capture_output=True,
+            text=True,
+            timeout=LINT_TIMEOUT,
+            cwd=cwd,
+            check=False,
+        )
+
+        after: dict[tuple[str, str], int] = {}
+        all_violations: list[dict] = []
+        with contextlib.suppress(json.JSONDecodeError):
+            all_violations = json.loads(check.stdout)
+            for v in all_violations:
+                key = (v.get("filename", ""), v.get("code", ""))
+                after[key] = after.get(key, 0) + 1
+
+        # Find new violations: count increased beyond baseline
+        new_keys = {
+            k for k, count in after.items()
+            if count > baseline.get(k, 0)
+        }
+        new_violations = [
+            v for v in all_violations
+            if (v.get("filename", ""), v.get("code", "")) in new_keys
+        ]
+
+        fmt = subprocess.run(
+            ["uv", "run", "ruff", "format", "--check", *targets],
+            capture_output=True,
+            text=True,
+            timeout=LINT_TIMEOUT,
+            cwd=cwd,
+            check=False,
+        )
+
+        check_passed = len(new_violations) == 0
+        fmt_passed = fmt.returncode == 0
+
+        check_out = "=== ruff check (new violations only) ===\n"
+        if new_violations:
+            check_out += _format_new_violations(new_violations)
+        else:
+            check_out += "No new violations.\n"
+        fmt_out = f"=== ruff format ===\n{fmt.stdout}{fmt.stderr}"
+
+        total = sum(after.values())
+        baseline_total = sum(baseline.values())
+        logger.info(
+            "Lint baseline: %d total violations (%d baseline, %d new)",
+            total, baseline_total, len(new_violations),
+        )
+
+        return SensorResult(
+            passed=check_passed and fmt_passed,
+            output=f"{check_out}\n{fmt_out}",
+            details={
+                "new_violation_count": len(new_violations),
+                "total_violation_count": total,
+                "baseline_violation_count": baseline_total,
+                "format_rc": fmt.returncode,
+            },
+        )
+
+    # Non-baseline mode: original behavior
     check = subprocess.run(
         ["uv", "run", "ruff", "check", *targets],
         capture_output=True,
