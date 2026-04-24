@@ -33,10 +33,9 @@ git checkout {branch_name}
    - Use `_` for unused unpacked variables
    - Do not use `from __future__ import annotations`
    - Prefix any debug prints with `[DEBUG]`
-5. After writing code, run `uv run ruff check . --fix` and `uv run ruff format .` to fix lint issues.
-6. Commit your changes with a descriptive message. Do not add co-author lines.
-7. Do not modify migration files, settings files, pyproject.toml, or root conftest.py.
-8. Do not suppress lint violations by adding `# noqa` comments or editing ruff config. Fix the underlying code instead.
+5. Commit your changes with a descriptive message. Do not add co-author lines.
+6. Do not modify migration files, settings files, pyproject.toml, or root conftest.py.
+7. Do not suppress lint violations by adding `# noqa` comments or editing ruff config. Fix the underlying code instead.
 
 ## Output
 

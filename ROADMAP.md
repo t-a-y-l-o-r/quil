@@ -113,8 +113,9 @@
    - `_` for unused variables (not `dummy`)
    - No `from __future__ import annotations`
    - `[DEBUG]` prefix on any debug prints
-4. Run `uv run ruff check . --fix` and `uv run ruff format .`
-5. Commit with descriptive message (no co-author lines per CLAUDE.md)
+4. Commit with descriptive message (no co-author lines per CLAUDE.md)
+
+Note: The Coder does **not** run lint — that is handled by the orchestrator's lint sensor after the Coder finishes. This keeps the Coder focused on writing code and avoids duplicate work.
 
 #### Output
 - A branch with one or more commits implementing the plan
@@ -122,8 +123,6 @@
 
 #### Done Criteria
 - All plan steps addressed (or explicitly noted as deferred with rationale)
-- `uv run ruff check .` passes with zero errors
-- `uv run ruff format --check .` passes
 - Code compiles (no syntax errors)
 - Branch is committed and ready for review
 
