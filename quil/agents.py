@@ -611,15 +611,6 @@ def get_diff(cwd: str, base: str = "develop") -> str:
     return result.stdout
 
 
-def push_branch(cwd: str, branch: str) -> None:
-    """Push the branch to origin."""
-    subprocess.run(
-        ["git", "push", "-u", "origin", branch],
-        check=True,
-        cwd=cwd,
-    )
-
-
 def create_draft_pr(
     repo: str,
     branch: str,
