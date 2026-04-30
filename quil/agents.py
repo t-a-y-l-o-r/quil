@@ -25,6 +25,17 @@ LINT_TIMEOUT = 60
 
 MAX_PR_TITLE_LENGTH = 70
 
+RUFF_SUFFIXES = {".py", ".pyi", ".ipynb"}
+
+
+def _ruff_targets(files: list[str]) -> list[str]:
+    """Filter to files ruff can actually parse.
+
+    Ruff treats explicit non-Python paths as Python source and emits
+    invalid-syntax errors, which the coder then tries to "fix."
+    """
+    return [f for f in files if Path(f).suffix in RUFF_SUFFIXES]
+
 
 @dataclass
 class PlanResult:
@@ -370,9 +381,7 @@ def run_code_review(
             raw = proc.run()
         except subprocess.TimeoutExpired:
             logger.warning("Code review timed out after %ds", CODE_REVIEW_TIMEOUT)
-            return CodeReviewResult(
-                raw_output=proc._partial_output(), findings=None
-            )
+            return CodeReviewResult(raw_output=proc._partial_output(), findings=None)
 
         parsed = extract_json(raw)
         findings = parsed.get("findings") if parsed else None
@@ -435,11 +444,12 @@ def snapshot_lint(
     intentionally ignored — they shift when code is edited, so we
     compare per-file rule counts instead.
     """
-    if not files:
+    targets = _ruff_targets(files)
+    if not targets:
         return {}
 
     result = subprocess.run(
-        ["uv", "run", "ruff", "check", "--output-format", "json", *files],
+        ["uv", "run", "ruff", "check", "--output-format", "json", *targets],
         capture_output=True,
         text=True,
         timeout=LINT_TIMEOUT,
@@ -480,7 +490,16 @@ def run_lint(
     counts are treated as failures. This prevents pre-existing
     violations from blocking the coder.
     """
-    targets = changed_files or ["."]
+    if changed_files is not None:
+        targets = _ruff_targets(changed_files)
+        if not targets:
+            return SensorResult(
+                passed=True,
+                output="=== ruff ===\nNo Python files to lint.\n",
+                details={"skipped": True, "changed_file_count": len(changed_files)},
+            )
+    else:
+        targets = ["."]
 
     if baseline is not None:
         # Baseline-aware mode: use JSON output and diff against baseline
@@ -502,12 +521,10 @@ def run_lint(
                 after[key] = after.get(key, 0) + 1
 
         # Find new violations: count increased beyond baseline
-        new_keys = {
-            k for k, count in after.items()
-            if count > baseline.get(k, 0)
-        }
+        new_keys = {k for k, count in after.items() if count > baseline.get(k, 0)}
         new_violations = [
-            v for v in all_violations
+            v
+            for v in all_violations
             if (v.get("filename", ""), v.get("code", "")) in new_keys
         ]
 
@@ -534,7 +551,9 @@ def run_lint(
         baseline_total = sum(baseline.values())
         logger.info(
             "Lint baseline: %d total violations (%d baseline, %d new)",
-            total, baseline_total, len(new_violations),
+            total,
+            baseline_total,
+            len(new_violations),
         )
 
         return SensorResult(
