@@ -20,7 +20,6 @@ from quil.agents import (
     get_changed_files,
     get_diff,
     load_plan_json,
-    push_branch,
     run_code_review,
     run_coder,
     run_lint,
@@ -711,55 +710,134 @@ def _phase_code_review_loop(
 MAX_LINT_RETRIES = 2
 
 
-def _checkout_branch(branch_name: str, cwd: str) -> None:
-    """Create or switch to the feature branch."""
-    result = subprocess.run(
-        ["git", "checkout", "-b", branch_name, "develop"],
-        capture_output=True,
+def _run_git_streaming(
+    cmd: list[str],
+    *,
+    cwd: str,
+    window: OutputWindow | None,
+    label: str = "git",
+    check: bool = True,
+) -> tuple[int, str]:
+    """Run a git command, streaming stdout+stderr into the stream box.
+
+    Falls back to plain ``subprocess.run`` (no capture) when no window is
+    provided so non-TTY runs keep their normal behavior.
+
+    Returns ``(returncode, full_output)``.
+    """
+    if window is None:
+        result = subprocess.run(cmd, cwd=cwd, check=check)
+        return result.returncode, ""
+
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
         cwd=cwd,
-        check=False,
     )
-    if result.returncode != 0:
-        # Branch already exists (e.g. retry) — switch to it
-        subprocess.run(
-            ["git", "checkout", branch_name],
-            capture_output=True,
-            text=True,
+    lines: list[str] = []
+    assert process.stdout is not None
+    for raw_line in process.stdout:
+        line = raw_line.rstrip("\n")
+        lines.append(line)
+        window.update_line(label, line)
+    rc = process.wait()
+    output = "\n".join(lines)
+    if check and rc != 0:
+        raise subprocess.CalledProcessError(rc, cmd, output=output)
+    return rc, output
+
+
+def _checkout_branch(
+    branch_name: str,
+    cwd: str,
+    window: OutputWindow | None = None,
+) -> None:
+    """Create or switch to the feature branch."""
+    if window:
+        window.start("git")
+    try:
+        rc, _ = _run_git_streaming(
+            ["git", "checkout", "-b", branch_name, "develop"],
             cwd=cwd,
-            check=True,
+            window=window,
+            check=False,
         )
+        if rc != 0:
+            # Branch already exists (e.g. retry) — switch to it
+            _run_git_streaming(
+                ["git", "checkout", branch_name],
+                cwd=cwd,
+                window=window,
+                check=True,
+            )
+    finally:
+        if window:
+            window.stop()
 
 
-def _commit_changes(plan: dict, cwd: str) -> bool:
+def _commit_changes(
+    plan: dict,
+    cwd: str,
+    window: OutputWindow | None = None,
+) -> bool:
     """Stage and commit all changes with --no-verify.
 
     Returns True if a commit was created, False if there was nothing to commit.
     """
-    subprocess.run(
-        ["git", "add", "-A"],
-        cwd=cwd,
-        check=True,
-    )
+    if window:
+        window.start("git")
+    try:
+        _run_git_streaming(
+            ["git", "add", "-A"],
+            cwd=cwd,
+            window=window,
+            check=True,
+        )
 
-    # Check if there's anything to commit
-    status = subprocess.run(
-        ["git", "diff", "--cached", "--quiet"],
-        cwd=cwd,
-        check=False,
-    )
-    if status.returncode == 0:
-        logger.info("No changes to commit.")
-        return False
+        # Check if there's anything to commit (no output, just rc)
+        status = subprocess.run(
+            ["git", "diff", "--cached", "--quiet"],
+            cwd=cwd,
+            check=False,
+        )
+        if status.returncode == 0:
+            logger.info("No changes to commit.")
+            return False
 
-    title = plan.get("issue_title", "Implement plan")
-    message = f"{title}\n\nAutomated commit by quil coder agent."
-    subprocess.run(
-        ["git", "commit", "--no-verify", "-m", message],
-        cwd=cwd,
-        check=True,
-    )
-    return True
+        title = plan.get("issue_title", "Implement plan")
+        message = f"{title}\n\nAutomated commit by quil coder agent."
+        _run_git_streaming(
+            ["git", "commit", "--no-verify", "-m", message],
+            cwd=cwd,
+            window=window,
+            check=True,
+        )
+        return True
+    finally:
+        if window:
+            window.stop()
+
+
+def _push_branch(
+    branch: str,
+    cwd: str,
+    window: OutputWindow | None = None,
+) -> None:
+    """Push the branch to origin, streaming git output."""
+    if window:
+        window.start("git")
+    try:
+        _run_git_streaming(
+            ["git", "push", "-u", "origin", branch],
+            cwd=cwd,
+            window=window,
+            check=True,
+        )
+    finally:
+        if window:
+            window.stop()
 
 
 def _code_and_lint(
@@ -785,7 +863,7 @@ def _code_and_lint(
 
     Returns the final lint SensorResult (passed or not).
     """
-    _checkout_branch(branch_name, cwd)
+    _checkout_branch(branch_name, cwd, window=window)
 
     # Snapshot pre-existing lint violations before the coder touches anything.
     # Only new violations (count increased per file+rule) will be failures.
@@ -833,7 +911,7 @@ def _code_and_lint(
             log_dir,
         )
 
-        _commit_changes(plan, cwd)
+        _commit_changes(plan, cwd, window=window)
 
         changed_files = get_changed_files(cwd)
         logger.info("Running lint on %d changed files...", len(changed_files))
@@ -910,7 +988,7 @@ def _single_attempt(
 
     # --- Push + draft PR (first attempt) + CI ---
     logger.info("Pushing branch %s...", branch_name)
-    push_branch(cwd, branch_name)
+    _push_branch(branch_name, cwd, window=window)
 
     # Open the draft PR before waiting for CI so that the
     # pull_request event triggers the workflow. On retries the
