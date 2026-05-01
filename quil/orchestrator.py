@@ -61,6 +61,10 @@ class Verdict:
     ci_run_id: int | None = None
     findings: list[dict] = field(default_factory=list)
     pr_url: str | None = None
+    # Label the issue actually carries when this verdict is returned,
+    # so the outer loop can pass the right from_label to the next
+    # transition without assuming the happy path was taken.
+    current_label: str = "agent-reviewing"
 
 
 def _setup_logging(
@@ -647,11 +651,11 @@ def _phase_code_review_loop(
     feedback: str | None = None
     cwd = str(Path.cwd())
     pr_url: str | None = None
+    next_from_label = "agent-planning"
 
     for attempt in range(1, max_attempts + 1):
         logger.info("=== Attempt %d/%d ===", attempt, max_attempts)
 
-        from_label = "agent-planning" if attempt == 1 else "agent-reviewing"
         verdict = _single_attempt(
             repo,
             issue_number,
@@ -660,7 +664,7 @@ def _phase_code_review_loop(
             plan_json,
             branch_name=branch_name,
             attempt=attempt,
-            from_label=from_label,
+            from_label=next_from_label,
             feedback=feedback,
             cwd=cwd,
             log_dir=log_dir,
@@ -694,7 +698,7 @@ def _phase_code_review_loop(
             transition(
                 repo,
                 issue_number,
-                "agent-reviewing",
+                verdict.current_label,
                 "agent-rejected",
             )
             msg = (
@@ -703,6 +707,8 @@ def _phase_code_review_loop(
             )
             comment_on_issue(repo, issue_number, msg)
             return None
+
+        next_from_label = verdict.current_label
 
     return None
 
@@ -984,6 +990,7 @@ def _single_attempt(
                 f"fast retries (no push/CI):\n"
                 f"{lint_result.output[:500]}"
             ],
+            current_label="agent-coding",
         )
 
     # --- Push + draft PR (first attempt) + CI ---
