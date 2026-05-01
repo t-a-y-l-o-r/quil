@@ -783,6 +783,52 @@ def _checkout_branch(
             window.stop()
 
 
+def _apply_deletions(
+    plan: dict,
+    cwd: str,
+    window: OutputWindow | None = None,
+) -> list[str]:
+    """Run ``git rm`` for files the plan marked for deletion.
+
+    The coder has no Bash and cannot delete files. The plan declares
+    ``delete_files`` and the orchestrator removes them here, after the
+    coder writes content but before the commit phase stages everything.
+
+    Returns the list of paths actually removed (existed in the working
+    tree). Missing or already-deleted paths are skipped silently.
+    """
+    targets = plan.get("delete_files") or []
+    removed: list[str] = []
+    if not targets:
+        return removed
+
+    if window:
+        window.start("git")
+    try:
+        for path in targets:
+            full = Path(cwd) / path
+            if not full.exists():
+                logger.debug("delete_files: %s already absent, skipping", path)
+                continue
+            _run_git_streaming(
+                ["git", "rm", "-f", path],
+                cwd=cwd,
+                window=window,
+                check=True,
+            )
+            removed.append(path)
+        if removed:
+            logger.info(
+                "Removed %d file(s) per plan.delete_files: %s",
+                len(removed),
+                ", ".join(removed),
+            )
+    finally:
+        if window:
+            window.stop()
+    return removed
+
+
 def _commit_changes(
     plan: dict,
     cwd: str,
@@ -917,6 +963,7 @@ def _code_and_lint(
             log_dir,
         )
 
+        _apply_deletions(plan, cwd, window=window)
         _commit_changes(plan, cwd, window=window)
 
         changed_files = get_changed_files(cwd)
