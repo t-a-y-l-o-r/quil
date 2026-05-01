@@ -19,7 +19,18 @@ VALID_TRANSITIONS: dict[str | None, list[str]] = {
     None: ["agent-planning"],
     "agent-ready": ["agent-planning"],
     "agent-planning": ["agent-coding", "agent-failed"],
-    "agent-coding": ["agent-ci-pending", "agent-failed"],
+    # Self-loop on agent-coding: when the inner lint loop exhausts its
+    # retries, _single_attempt short-circuits before push/CI/review and
+    # the issue stays on agent-coding. The next outer attempt restarts
+    # coding from that same label, which is a no-op transition.
+    # agent-rejected is also reachable directly from agent-coding for
+    # the case where the final outer attempt ended on a lint short-circuit.
+    "agent-coding": [
+        "agent-coding",
+        "agent-ci-pending",
+        "agent-failed",
+        "agent-rejected",
+    ],
     "agent-ci-pending": ["agent-reviewing", "agent-failed"],
     "agent-reviewing": [
         "agent-coding",
@@ -141,6 +152,9 @@ def transition(
         if from_label not in current_labels:
             msg = f"Issue #{issue} does not have label '{from_label}'"
             raise ValueError(msg)
+        # Self-loop: issue is already on the target label, nothing to do.
+        if from_label == to_label:
+            return
 
     args = [
         "issue",
