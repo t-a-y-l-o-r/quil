@@ -31,6 +31,7 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) matching thi
   "classification": "feature" | "bug" | "chore",
   "branch_name": "<prefix>/<number>-<slug>",
   "affected_files": ["<path>", ...],
+  "delete_files": ["<path>", ...],
   "plan_steps": [
     {"step": <int>, "description": "<what to do>", "file": "<path>", "rationale": "<why>"}
   ],
@@ -43,6 +44,7 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) matching thi
 ## Rules
 
 - Every path in `affected_files` must exist in the repo (verify with Glob/Read).
+- `delete_files` lists files that should be deleted entirely. The orchestrator runs `git rm` on them after the coder finishes — the coder does NOT need to (and cannot) delete them itself. Use an empty list if nothing is being deleted. Files in `delete_files` should also appear in `affected_files` if other plan steps reference them.
 - Branch name must follow the convention: `feature/`, `bug/`, or `chore/` prefix.
 - At least one acceptance criterion must be defined.
 - Do not suggest modifying migration files, settings files, or root conftest.py.

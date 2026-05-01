@@ -491,7 +491,12 @@ def run_lint(
     violations from blocking the coder.
     """
     if changed_files is not None:
-        targets = _ruff_targets(changed_files)
+        # Filter out paths git reports as changed but no longer exist on disk
+        # (e.g. files the orchestrator removed via `git rm`); ruff errors out
+        # if asked to lint a path that doesn't exist.
+        targets = [
+            t for t in _ruff_targets(changed_files) if (Path(cwd) / t).exists()
+        ]
         if not targets:
             return SensorResult(
                 passed=True,
