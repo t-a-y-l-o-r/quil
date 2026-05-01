@@ -258,6 +258,18 @@ _GH_LOG_PREFIX = re.compile(
     r"^[^\t]+\t[^\t]+\t\d{4}-\d{2}-\d{2}T[\d:.]+Z\s?",
 )
 
+# pytest summary lines always begin with a real outcome word. Anchoring on
+# this set prevents the regex from latching onto unrelated "<N> <word> in
+# <time>s" lines earlier in the log (e.g. uv's "Resolved 84 packages in
+# 2.18s"), which previously caused the summary to be parsed as
+# total=84/passed=0/failed=0.
+_PYTEST_OUTCOME_WORDS = (
+    r"(?:passed|failed|errors?|skipped|xfailed|xpassed|deselected|warnings?)"
+)
+_PYTEST_SUMMARY_RE = re.compile(
+    rf"(\d+\s+{_PYTEST_OUTCOME_WORDS}(?:,\s*\d+\s+\w+)*)\s+in\s+[\d.]+s"
+)
+
 
 def _strip_gh_log_prefixes(output: str) -> str:
     """Strip ``gh run view --log`` line prefixes.
@@ -301,12 +313,11 @@ def parse_test_output(output: str) -> TestReport:
     failed = 0
     errors = 0
 
-    summary_match = re.search(
-        r"(\d+\s+\w+(?:,\s*\d+\s+\w+)*)\s+in\s+[\d.]+s",
-        output,
-    )
-    if summary_match:
-        summary_text = summary_match.group(1)
+    # Take the last match: pytest summary always sits at the end of the
+    # log, and a single CI step may emit multiple invocations.
+    summary_matches = list(_PYTEST_SUMMARY_RE.finditer(output))
+    if summary_matches:
+        summary_text = summary_matches[-1].group(1)
         for count_match in re.finditer(r"(\d+)\s+(\w+)", summary_text):
             count = int(count_match.group(1))
             label = count_match.group(2)
