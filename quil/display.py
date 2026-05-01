@@ -17,6 +17,7 @@ bottom and updated in place.
 import atexit
 import logging
 import os
+import re
 import sys
 import textwrap
 import threading
@@ -26,6 +27,21 @@ from collections import deque
 
 STREAM_HEIGHT = 10
 MIN_LOG_ROWS = 3
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_WHITESPACE_RUN_RE = re.compile(r"\s+")
+
+
+def _sanitize_stream_line(text: str) -> str:
+    """Collapse free-form text to a single visual row.
+
+    The stream box paints each entry into one terminal row; embedded
+    newlines, carriage returns, or ANSI escapes corrupt the layout
+    (cursor drops into the row below and overwrites neighbouring
+    content, including the bottom border).
+    """
+    text = _ANSI_ESCAPE_RE.sub("", text)
+    return _WHITESPACE_RUN_RE.sub(" ", text).strip()
 
 # ANSI color codes
 _RESET = "\033[0m"
@@ -222,10 +238,13 @@ class OutputWindow:
 
     def update_line(self, label: str, line: str) -> None:
         """Add a line to the stream box. Thread-safe."""
+        sanitized = _sanitize_stream_line(line)
+        if not sanitized:
+            return
         with self._lock:
             if not self._stream_active or not self._layout_active:
                 return
-            self._stream_lines.append(line)
+            self._stream_lines.append(sanitized)
             self._redraw_stream()
 
     # ------------------------------------------------------------------
