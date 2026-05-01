@@ -611,6 +611,73 @@ def get_diff(cwd: str, base: str = "develop") -> str:
     return result.stdout
 
 
+def format_pr_body(plan: dict, issue: dict) -> str:
+    """Render a planner plan + issue as a human-and-LLM-readable PR body.
+
+    Sections with no data are omitted. Raw JSON is preserved at the end so
+    downstream tooling (and reviewers who want the canonical form) can still
+    read it.
+    """
+    sections: list[str] = [f"Resolves #{issue['number']}"]
+
+    classification = plan.get("classification")
+    complexity = plan.get("estimated_complexity")
+    branch_name = plan.get("branch_name")
+    meta_parts: list[str] = []
+    if classification:
+        meta_parts.append(f"**{classification}**")
+    if complexity:
+        meta_parts.append(f"complexity: **{complexity}**")
+    if branch_name:
+        meta_parts.append(f"branch: `{branch_name}`")
+    if meta_parts:
+        sections.append("> " + " · ".join(meta_parts))
+
+    summary = plan.get("issue_title") or issue.get("title")
+    if summary:
+        sections.append(f"## Summary\n\n{summary}")
+
+    plan_steps = plan.get("plan_steps") or []
+    if plan_steps:
+        lines = ["## Plan", ""]
+        for index, step in enumerate(plan_steps, start=1):
+            number = step.get("step", index)
+            description = step.get("description", "").strip()
+            file = step.get("file")
+            rationale = (step.get("rationale") or "").strip()
+            lines.append(f"{number}. **{description}**")
+            if file:
+                lines.append(f"   - File: `{file}`")
+            if rationale:
+                lines.append(f"   - Why: {rationale}")
+        sections.append("\n".join(lines))
+
+    affected_files = plan.get("affected_files") or []
+    if affected_files:
+        files_block = "\n".join(f"- `{f}`" for f in affected_files)
+        sections.append(f"## Affected files\n\n{files_block}")
+
+    criteria = plan.get("acceptance_criteria") or []
+    if criteria:
+        crit_block = "\n".join(f"- [ ] {c}" for c in criteria)
+        sections.append(f"## Acceptance criteria\n\n{crit_block}")
+
+    risks = plan.get("risks") or []
+    if risks:
+        risks_block = "\n".join(f"- {r}" for r in risks)
+        sections.append(f"## Risks\n\n{risks_block}")
+
+    raw_json = json.dumps(plan, indent=2)
+    sections.append(
+        "---\n\n"
+        "<details><summary>Raw plan (JSON)</summary>\n\n"
+        f"```json\n{raw_json}\n```\n\n"
+        "</details>"
+    )
+
+    return "\n\n".join(sections)
+
+
 def create_draft_pr(
     repo: str,
     branch: str,
@@ -625,10 +692,7 @@ def create_draft_pr(
     if len(title) > MAX_PR_TITLE_LENGTH:
         title = title[: MAX_PR_TITLE_LENGTH - 3] + "..."
 
-    body = (
-        f"Resolves #{issue['number']}\n\n"
-        f"## Plan\n```json\n{json.dumps(plan, indent=2)}\n```"
-    )
+    body = format_pr_body(plan, issue)
 
     result = subprocess.run(
         [
