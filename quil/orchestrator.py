@@ -16,6 +16,7 @@ from quil.agents import (
     CODER_TIMEOUT,
     PLANNER_TIMEOUT,
     SensorResult,
+    autofix_lint,
     changed_paths,
     create_draft_pr,
     detect_override_violations,
@@ -1091,17 +1092,44 @@ def _commit_changes(
             window.stop()
 
 
+def _dirty_paths(cwd: str) -> list[str]:
+    """Return paths git considers modified, deleted, or untracked.
+
+    Used to detect when a hook silently rewrote files between commit
+    and push — the symptom is a non-empty working tree after the
+    orchestrator believes the branch is fully synced with the remote.
+    """
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        check=False,
+    )
+    paths: list[str] = []
+    for raw in result.stdout.splitlines():
+        if len(raw) >= 3:
+            paths.append(raw[3:].strip())
+    return paths
+
+
 def _push_branch(
     branch: str,
     cwd: str,
     window: OutputWindow | None = None,
 ) -> None:
-    """Push the branch to origin, streaming git output."""
+    """Push the branch to origin, streaming git output.
+
+    Uses ``--no-verify`` to skip pre-push hooks. Without this, a hook
+    that auto-fixes files (e.g. ``ruff check --fix`` via pre-commit)
+    will rewrite the working tree between commit and push, leaving
+    uncommitted changes that disagree with what was pushed.
+    """
     if window:
         window.start("git")
     try:
         _run_git_streaming(
-            ["git", "push", "-u", "origin", branch],
+            ["git", "push", "--no-verify", "-u", "origin", branch],
             cwd=cwd,
             window=window,
             check=True,
@@ -1271,6 +1299,21 @@ def _code_and_lint(
             if override_result is not None:
                 return override_result
 
+        # Apply auto-fixable lint rules (I001 isort, etc.) before
+        # committing so the commit already matches what any pre-push
+        # hooks would produce — otherwise the hook rewrites the working
+        # tree post-push and leaves uncommitted drift.
+        autofix_targets = changed_paths(cwd)
+        if autofix_targets:
+            autofix_result = autofix_lint(cwd, sorted(autofix_targets))
+            if not autofix_result.passed:
+                logger.warning(
+                    "ruff auto-fix exited non-zero (fix_rc=%s, format_rc=%s); "
+                    "continuing — lint sensor will catch any remaining issues.",
+                    autofix_result.details.get("fix_rc"),
+                    autofix_result.details.get("format_rc"),
+                )
+
         _apply_deletions(plan, cwd, window=window)
         _commit_changes(plan, cwd, window=window)
 
@@ -1353,6 +1396,16 @@ def _single_attempt(
     # --- Push + draft PR (first attempt) + CI ---
     logger.info("Pushing branch %s...", branch_name)
     _push_branch(branch_name, cwd, window=window)
+
+    dirty = _dirty_paths(cwd)
+    if dirty:
+        msg = (
+            "Working tree is not clean after push — committed code "
+            "disagrees with the working tree. A hook likely rewrote "
+            "files after commit. Dirty paths:\n  " + "\n  ".join(dirty)
+        )
+        logger.error(msg)
+        raise RuntimeError(msg)
 
     # Open the draft PR before waiting for CI so that the
     # pull_request event triggers the workflow. On retries the
