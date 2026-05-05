@@ -158,14 +158,26 @@ def load_plan_json(
 def run_planner(
     issue_context: str,
     *,
+    feedback: str | None = None,
     on_line: Callable[[str, str], None] | None = None,
     log_file: Path | None = None,
 ) -> PlanResult:
-    """Invoke the Planner agent to produce an implementation plan."""
+    """Invoke the Planner agent to produce an implementation plan.
+
+    ``feedback`` is rendered into the prompt's ``{feedback_section}``
+    slot so a re-prompt after a failed validation can carry forward
+    targeted corrections (e.g. paths that need to move into
+    ``restricted_overrides``).
+    """
     template = load_prompt("planner")
     conventions = load_prompt("conventions")
-    prompt = template.replace("{issue}", issue_context).replace(
-        "{conventions}", conventions
+    feedback_section = (
+        f"\n\n## Prior-Attempt Feedback\n{feedback}\n" if feedback else ""
+    )
+    prompt = (
+        template.replace("{issue}", issue_context)
+        .replace("{conventions}", conventions)
+        .replace("{feedback_section}", feedback_section)
     )
 
     if on_line is not None:
@@ -368,6 +380,29 @@ def _glob_to_regex(glob: str) -> re.Pattern:
 
 
 _PERMISSION_ENTRY_RE = re.compile(r"^(\w+)\((.+)\)$")
+
+
+def restricted_path_globs() -> list[re.Pattern]:
+    """Return compiled regexes for every path glob the Coder is denied.
+
+    The orchestrator uses this to validate that the Planner has correctly
+    routed restricted-path edits through ``restricted_overrides`` rather
+    than silently listing them in ``affected_files``.
+    """
+    base = json.loads((SETTINGS_DIR / "coder.json").read_text())
+    deny = base.get("permissions", {}).get("deny", [])
+    seen: set[str] = set()
+    out: list[re.Pattern] = []
+    for entry in deny:
+        match = _PERMISSION_ENTRY_RE.match(entry)
+        if not match:
+            continue
+        glob = match.group(2)
+        if glob in seen:
+            continue
+        seen.add(glob)
+        out.append(_glob_to_regex(glob))
+    return out
 
 
 def _strip_denies_for_paths(deny: list[str], approved_paths: list[str]) -> list[str]:
