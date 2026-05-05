@@ -693,6 +693,55 @@ def get_changed_files(
     return [f for f in result.stdout.strip().splitlines() if f.strip()]
 
 
+def autofix_lint(cwd: str, files: list[str]) -> SensorResult:
+    """Apply ruff's safe auto-fixes and re-format the given files.
+
+    Runs ``ruff check --fix`` (auto-fixable rules — most importantly
+    I001 isort) and ``ruff format`` (style normalization) on the
+    target files. The orchestrator calls this between the coder/
+    override-coder passes and the commit step so the committed code
+    already reflects everything a project's pre-push hook would
+    auto-fix; otherwise the hook rewrites the working tree post-push
+    and leaves uncommitted drift.
+
+    Returns a ``SensorResult`` whose ``passed`` is True when both
+    commands exited 0; details carry each command's return code.
+    """
+    targets = _ruff_targets(files)
+    if not targets:
+        return SensorResult(
+            passed=True,
+            output="=== ruff autofix ===\nNo Python files to fix.\n",
+            details={"skipped": True},
+        )
+
+    fix = subprocess.run(
+        ["uv", "run", "ruff", "check", "--fix", *targets],
+        capture_output=True,
+        text=True,
+        timeout=LINT_TIMEOUT,
+        cwd=cwd,
+        check=False,
+    )
+    fmt = subprocess.run(
+        ["uv", "run", "ruff", "format", *targets],
+        capture_output=True,
+        text=True,
+        timeout=LINT_TIMEOUT,
+        cwd=cwd,
+        check=False,
+    )
+    output = (
+        f"=== ruff check --fix ===\n{fix.stdout}{fix.stderr}\n"
+        f"=== ruff format ===\n{fmt.stdout}{fmt.stderr}"
+    )
+    return SensorResult(
+        passed=fix.returncode == 0 and fmt.returncode == 0,
+        output=output,
+        details={"fix_rc": fix.returncode, "format_rc": fmt.returncode},
+    )
+
+
 def snapshot_lint(
     cwd: str,
     files: list[str],
