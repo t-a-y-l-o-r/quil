@@ -1,10 +1,12 @@
 """Agent invocation via Claude CLI subprocess and output parsing."""
 
 import contextlib
+import hashlib
 import json
 import logging
 import re
 import subprocess
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -339,6 +341,228 @@ def run_coder(
     return CoderResult(raw_output=raw, branch=branch)
 
 
+def _glob_to_regex(glob: str) -> re.Pattern:
+    """Convert a path glob (with ``**`` support) to a compiled regex."""
+    parts: list[str] = []
+    i = 0
+    while i < len(glob):
+        if glob[i : i + 3] == "**/":
+            parts.append("(?:.*/)?")
+            i += 3
+        elif glob[i : i + 3] == "/**":
+            parts.append("(?:/.*)?")
+            i += 3
+        elif glob[i] == "*":
+            parts.append("[^/]*")
+            i += 1
+        elif glob[i] == "?":
+            parts.append("[^/]")
+            i += 1
+        elif glob[i] in ".+()[]{}|^$\\":
+            parts.append(re.escape(glob[i]))
+            i += 1
+        else:
+            parts.append(glob[i])
+            i += 1
+    return re.compile("^" + "".join(parts) + "$")
+
+
+_PERMISSION_ENTRY_RE = re.compile(r"^(\w+)\((.+)\)$")
+
+
+def _strip_denies_for_paths(deny: list[str], approved_paths: list[str]) -> list[str]:
+    """Drop deny entries whose glob matches any approved path.
+
+    Claude Code permission denies always beat allows, so the only way
+    to authorize an edit to a previously-denied path is to remove the
+    matching deny pattern entirely. Other deny entries are preserved.
+    """
+    kept: list[str] = []
+    for entry in deny:
+        match = _PERMISSION_ENTRY_RE.match(entry)
+        if not match:
+            kept.append(entry)
+            continue
+        pattern = _glob_to_regex(match.group(2))
+        if any(pattern.match(p) for p in approved_paths):
+            continue
+        kept.append(entry)
+    return kept
+
+
+def _build_override_settings(approved_paths: list[str], dest: Path) -> Path:
+    """Write a temp settings file with denies stripped for approved paths."""
+    base = json.loads((SETTINGS_DIR / "coder.json").read_text())
+    perms = base.setdefault("permissions", {})
+    perms["deny"] = _strip_denies_for_paths(perms.get("deny", []), approved_paths)
+    dest.write_text(json.dumps(base, indent=2))
+    return dest
+
+
+def changed_paths(cwd: str) -> set[str]:
+    """Return all paths changed in working tree vs HEAD, including untracked."""
+    tracked = subprocess.run(
+        ["git", "diff", "--name-only", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        check=False,
+    ).stdout.splitlines()
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        check=False,
+    ).stdout.splitlines()
+    return {p for p in (*tracked, *untracked) if p.strip()}
+
+
+def hash_paths(cwd: str, paths: set[str]) -> dict[str, str]:
+    """Hash file contents at ``paths`` for later scope comparison."""
+    out: dict[str, str] = {}
+    for p in paths:
+        full = Path(cwd) / p
+        if full.is_file():
+            out[p] = hashlib.sha1(full.read_bytes()).hexdigest()
+    return out
+
+
+def detect_override_violations(
+    *,
+    pre_paths: set[str],
+    pre_hashes: dict[str, str],
+    cwd: str,
+    approved: list[str],
+) -> list[str]:
+    """Return paths the override coder touched that weren't approved.
+
+    Catches three cases: new files added outside approved, modifications
+    to files that were already changed pre-override, and deletions of
+    pre-existing changes.
+    """
+    approved_set = set(approved)
+    post = changed_paths(cwd)
+    post_hashes = hash_paths(cwd, post)
+    violations: list[str] = []
+    for p in post - pre_paths:
+        if p not in approved_set:
+            violations.append(p)
+    for p in pre_paths & post:
+        if p in approved_set:
+            continue
+        if pre_hashes.get(p) != post_hashes.get(p):
+            violations.append(p)
+    for p in pre_paths - post:
+        if p not in approved_set:
+            violations.append(p)
+    return sorted(set(violations))
+
+
+def run_override_coder(
+    plan: dict,
+    branch_name: str,
+    confirmed_overrides: list[str],
+    *,
+    feedback: str | None = None,
+    cwd: str | None = None,
+    on_line: Callable[[str, str], None] | None = None,
+    log_file: Path | None = None,
+) -> CoderResult:
+    """Invoke a scoped Coder pass for human-approved restricted paths.
+
+    Only runs when ``confirmed_overrides`` is non-empty. Generates a
+    temporary settings file with deny patterns stripped for approved
+    paths and uses a prompt template that instructs the agent to touch
+    only those files. The orchestrator is responsible for snapshotting
+    the working tree before the call and validating the post-run diff
+    via ``detect_override_violations``.
+    """
+    if not confirmed_overrides:
+        return CoderResult(raw_output="", branch=branch_name)
+
+    coder_plan = {k: plan[k] for k in CODER_PLAN_KEYS if k in plan}
+    plan_json = json.dumps(coder_plan)
+
+    template = load_prompt("override_coder")
+    conventions = load_prompt("conventions")
+    feedback_section = f"\n\n## Reviewer Feedback\n{feedback}" if feedback else ""
+    approved_block = "\n".join(f"- {p}" for p in confirmed_overrides)
+    prompt = (
+        template.replace("{plan}", plan_json)
+        .replace("{branch_name}", branch_name)
+        .replace("{conventions}", conventions)
+        .replace("{approved_paths}", approved_block)
+        .replace("{feedback_section}", feedback_section)
+    )
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        suffix=".json",
+        prefix="quil-override-settings-",
+        delete=False,
+    ) as fh:
+        settings_path = Path(fh.name)
+    _build_override_settings(confirmed_overrides, settings_path)
+
+    cmd = [
+        "claude",
+        "--print",
+        "-p",
+        prompt,
+        "--model",
+        "sonnet",
+        "--settings",
+        str(settings_path),
+        "--allowedTools",
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "--max-budget-usd",
+        "10",
+    ]
+
+    try:
+        if on_line is not None:
+            cmd.extend(["--output-format", "stream-json", "--verbose"])
+            proc = StreamingProcess(
+                cmd,
+                "override-coder",
+                log_file=log_file,
+                on_line=on_line,
+                timeout=CODER_TIMEOUT,
+                cwd=cwd,
+            )
+            try:
+                raw = proc.run()
+            except subprocess.TimeoutExpired:
+                logger.warning("Override coder timed out after %ds", CODER_TIMEOUT)
+                raw = proc._partial_output()
+                return CoderResult(raw_output=raw, branch=branch_name)
+        else:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=CODER_TIMEOUT,
+                    cwd=cwd,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as exc:
+                logger.warning("Override coder timed out after %ds", CODER_TIMEOUT)
+                raw = _recover_stdout(exc)
+                return CoderResult(raw_output=raw, branch=branch_name)
+            raw = result.stdout
+    finally:
+        with contextlib.suppress(OSError):
+            settings_path.unlink()
+
+    return CoderResult(raw_output=raw, branch=branch_name)
+
+
 def run_code_review(
     diff: str,
     plan_json: str,
@@ -494,9 +718,7 @@ def run_lint(
         # Filter out paths git reports as changed but no longer exist on disk
         # (e.g. files the orchestrator removed via `git rm`); ruff errors out
         # if asked to lint a path that doesn't exist.
-        targets = [
-            t for t in _ruff_targets(changed_files) if (Path(cwd) / t).exists()
-        ]
+        targets = [t for t in _ruff_targets(changed_files) if (Path(cwd) / t).exists()]
         if not targets:
             return SensorResult(
                 passed=True,

@@ -16,13 +16,17 @@ from quil.agents import (
     CODER_TIMEOUT,
     PLANNER_TIMEOUT,
     SensorResult,
+    changed_paths,
     create_draft_pr,
+    detect_override_violations,
     get_changed_files,
     get_diff,
+    hash_paths,
     load_plan_json,
     run_code_review,
     run_coder,
     run_lint,
+    run_override_coder,
     run_planner,
     snapshot_lint,
     save_output,
@@ -172,10 +176,17 @@ def plan_cmd(issue_number: int, *, log_dir: Path, no_approval: bool) -> None:
     logger.info("Plan saved to %s", plan_path)
 
     if not no_approval:
-        if not _gate_human_approval(plan_result.plan, window=window):
+        approved, confirmed_overrides = _gate_human_approval(
+            plan_result.plan, window=window
+        )
+        if not approved:
             click.echo("Plan not approved.")
             sys.exit(1)
         click.echo("Plan approved.")
+        if confirmed_overrides:
+            click.echo(
+                "Confirmed restricted overrides: " + ", ".join(confirmed_overrides)
+            )
     else:
         window.deactivate()
         click.echo(_format_plan_summary(plan_result.plan))
@@ -477,7 +488,8 @@ def _run_pipeline(
     if plan is None:
         return
 
-    if not _gate_human_approval(plan, window=window):
+    approved, confirmed_overrides = _gate_human_approval(plan, window=window)
+    if not approved:
         _fail(
             repo,
             issue_number,
@@ -488,6 +500,11 @@ def _run_pipeline(
 
     branch_name = derive_branch_name(issue)
     logger.info("Branch: %s", branch_name)
+    if confirmed_overrides:
+        logger.info(
+            "Restricted overrides confirmed by human: %s",
+            ", ".join(confirmed_overrides),
+        )
 
     pr_url = _phase_code_review_loop(
         repo,
@@ -498,6 +515,7 @@ def _run_pipeline(
         max_attempts=max_attempts,
         log_dir=log_dir,
         window=window,
+        confirmed_overrides=confirmed_overrides,
     )
 
     if pr_url:
@@ -588,6 +606,17 @@ def _format_plan_summary(plan: dict) -> str:
         for f in affected:
             lines.append(f"                  {f}")
 
+    overrides = plan.get("restricted_overrides", [])
+    if overrides:
+        lines.append("")
+        lines.append("  ⚠ Restricted overrides requested:")
+        for o in overrides:
+            path = o.get("path", "?") if isinstance(o, dict) else str(o)
+            reason = o.get("reason", "") if isinstance(o, dict) else ""
+            lines.append(f"    - {path}")
+            if reason:
+                lines.append(f"        reason: {reason}")
+
     steps = plan.get("plan_steps", [])
     if steps:
         lines.append("")
@@ -622,17 +651,45 @@ def _format_plan_summary(plan: dict) -> str:
 def _gate_human_approval(
     plan: dict,
     window: OutputWindow | None = None,
-) -> bool:
-    """Display a human-readable plan summary and prompt for approval."""
+) -> tuple[bool, list[str]]:
+    """Display the plan summary and gate the run on human approval.
+
+    If the plan declares ``restricted_overrides``, the human is prompted
+    to approve each one individually before being asked to approve the
+    plan as a whole. Any rejection — per-file or overall — aborts the
+    pipeline. Returns ``(approved, confirmed_overrides)`` where
+    ``confirmed_overrides`` is the list of override paths the human
+    explicitly authorized for editing.
+    """
     summary = _format_plan_summary(plan)
     if window:
         window.show_plan(summary)
     else:
         click.echo(summary)
+
+    confirmed: list[str] = []
+    overrides = plan.get("restricted_overrides") or []
+    for entry in overrides:
+        path = entry.get("path") if isinstance(entry, dict) else None
+        reason = entry.get("reason", "") if isinstance(entry, dict) else ""
+        if not path:
+            continue
+        prompt = f"Allow edit to restricted path {path}?"
+        if reason:
+            prompt = f"{prompt}\n  reason: {reason}\n"
+        if not click.confirm(prompt, default=False):
+            click.echo(f"Override rejected for {path} — aborting.")
+            if window:
+                window.resume_layout()
+            return False, []
+        confirmed.append(path)
+
     approved = click.confirm("Approve this plan?")
     if window:
         window.resume_layout()
-    return approved
+    if not approved:
+        return False, []
+    return True, confirmed
 
 
 def _phase_code_review_loop(
@@ -645,6 +702,7 @@ def _phase_code_review_loop(
     max_attempts: int,
     log_dir: Path,
     window: OutputWindow | None = None,
+    confirmed_overrides: list[str] | None = None,
 ) -> str | None:
     """Run the Coder/CI/Review loop. Returns the PR URL if approved."""
     plan_json = json.dumps(plan, indent=2)
@@ -669,6 +727,7 @@ def _phase_code_review_loop(
             cwd=cwd,
             log_dir=log_dir,
             window=window,
+            confirmed_overrides=confirmed_overrides or [],
         )
 
         if verdict.pr_url:
@@ -892,6 +951,80 @@ def _push_branch(
             window.stop()
 
 
+def _run_override_pass(
+    *,
+    issue_number: int,
+    plan: dict,
+    branch_name: str,
+    attempt: int,
+    lint_try: int,
+    feedback: str | None,
+    cwd: str,
+    log_dir: Path,
+    window: OutputWindow | None,
+    confirmed_overrides: list[str],
+) -> SensorResult | None:
+    """Run the override coder pass and verify it stayed in scope.
+
+    Returns ``None`` on success. If the override coder edited any path
+    outside the human-approved list, the violations are logged and a
+    failed ``SensorResult`` is returned so the outer attempt is marked
+    as failed without committing the bad state.
+    """
+    pre_paths = changed_paths(cwd)
+    pre_hashes = hash_paths(cwd, pre_paths)
+
+    suffix = f"-lint{lint_try}" if lint_try > 0 else ""
+    stream_log = (
+        log_dir
+        / f"issue-{issue_number}"
+        / f"override-coder-stream-{attempt}{suffix}.log"
+    )
+    if window:
+        window.start("override-coder", timeout=CODER_TIMEOUT)
+    override_result = run_override_coder(
+        plan,
+        branch_name,
+        confirmed_overrides,
+        feedback=feedback,
+        cwd=cwd,
+        on_line=window.update_line if window else None,
+        log_file=stream_log if window else None,
+    )
+    if window:
+        window.stop()
+
+    save_output(
+        issue_number,
+        "override-coder",
+        attempt if lint_try == 0 else f"{attempt}-lint{lint_try}",
+        override_result.raw_output,
+        log_dir,
+    )
+
+    violations = detect_override_violations(
+        pre_paths=pre_paths,
+        pre_hashes=pre_hashes,
+        cwd=cwd,
+        approved=confirmed_overrides,
+    )
+    if violations:
+        logger.error(
+            "Override coder touched %d out-of-scope path(s): %s",
+            len(violations),
+            ", ".join(violations),
+        )
+        return SensorResult(
+            passed=False,
+            output=(
+                "Override coder edited paths outside the human-approved "
+                "list:\n" + "\n".join(violations)
+            ),
+            details={"override_violations": violations},
+        )
+    return None
+
+
 def _code_and_lint(
     issue_number: int,
     plan: dict,
@@ -902,6 +1035,7 @@ def _code_and_lint(
     cwd: str,
     log_dir: Path,
     window: OutputWindow | None = None,
+    confirmed_overrides: list[str] | None = None,
 ) -> SensorResult:
     """Run the Coder then lint, retrying lint failures locally.
 
@@ -937,9 +1071,7 @@ def _code_and_lint(
             suffix,
         )
         stream_log = (
-            log_dir
-            / f"issue-{issue_number}"
-            / f"coder-stream-{attempt}-{lint_try}.log"
+            log_dir / f"issue-{issue_number}" / f"coder-stream-{attempt}-{lint_try}.log"
         )
 
         if window:
@@ -962,6 +1094,22 @@ def _code_and_lint(
             coder_result.raw_output,
             log_dir,
         )
+
+        if confirmed_overrides:
+            override_result = _run_override_pass(
+                issue_number=issue_number,
+                plan=plan,
+                branch_name=branch_name,
+                attempt=attempt,
+                lint_try=lint_try,
+                feedback=feedback,
+                cwd=cwd,
+                log_dir=log_dir,
+                window=window,
+                confirmed_overrides=confirmed_overrides,
+            )
+            if override_result is not None:
+                return override_result
 
         _apply_deletions(plan, cwd, window=window)
         _commit_changes(plan, cwd, window=window)
@@ -1007,6 +1155,7 @@ def _single_attempt(
     cwd: str,
     log_dir: Path,
     window: OutputWindow | None = None,
+    confirmed_overrides: list[str] | None = None,
 ) -> Verdict:
     """Run one code + CI + review cycle. Returns a Verdict."""
     # --- Code + lint inner loop ---
@@ -1020,6 +1169,7 @@ def _single_attempt(
         cwd=cwd,
         log_dir=log_dir,
         window=window,
+        confirmed_overrides=confirmed_overrides or [],
     )
 
     if not lint_result.passed:
