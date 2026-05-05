@@ -28,13 +28,14 @@ When a change touches one domain, the affected files follow this pattern:
 
 ## Do Not Modify
 
-These paths require human review and must not be changed by agents:
+These paths require human review. The Planner must declare any genuinely-needed edit in `restricted_overrides` so the human can approve it per-file; without that approval the Coder is denied edits to these paths:
 
 - `<repo>/migrations/` — never edit migration files directly
 - `project/settings/` — settings changes require human review
 - `pyproject.toml` — never modify linter config, dependencies, or project metadata
 - `conftest.py` (root) — shared test infrastructure; changes affect all tests
-- Any file outside `<repo>/` and `tests/` without explicit plan approval
+- `**/tests/**` — test files and shared test helpers; even adding a new test or fixing a lint violation in a test file requires an override entry
+- Any file outside `<repo>/` without explicit plan approval
 
 ## Validation Commands (Orchestrator/Reviewer only)
 
