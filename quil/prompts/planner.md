@@ -32,6 +32,9 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) matching thi
   "branch_name": "<prefix>/<number>-<slug>",
   "affected_files": ["<path>", ...],
   "delete_files": ["<path>", ...],
+  "restricted_overrides": [
+    {"path": "<path>", "reason": "<why this restricted file must be edited>"}
+  ],
   "plan_steps": [
     {"step": <int>, "description": "<what to do>", "file": "<path>", "rationale": "<why>"}
   ],
@@ -45,7 +48,8 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) matching thi
 
 - Every path in `affected_files` must exist in the repo (verify with Glob/Read).
 - `delete_files` lists files that should be deleted entirely. The orchestrator runs `git rm` on them after the coder finishes — the coder does NOT need to (and cannot) delete them itself. Use an empty list if nothing is being deleted. Files in `delete_files` should also appear in `affected_files` if other plan steps reference them.
+- `restricted_overrides` declares any path under `Do Not Modify` (see Conventions) that this plan genuinely needs to edit — for example a test file, `pyproject.toml`, root `conftest.py`, `project/settings/`, or `**/migrations/`. Each entry must include a one-line `reason`. Use an empty list if no restricted edits are needed. The human will be prompted to approve each override before the coder runs; any rejection aborts the run, so only list overrides that are truly required. These paths must NOT appear in `affected_files` — they are tracked separately.
 - Branch name must follow the convention: `feature/`, `bug/`, or `chore/` prefix.
 - At least one acceptance criterion must be defined.
-- Do not suggest modifying migration files, settings files, or root conftest.py.
+- Do not suggest modifying migration files, settings files, or root conftest.py outside of `restricted_overrides`.
 - If complexity is "high", note this prominently — it will be flagged for human review.
