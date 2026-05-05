@@ -53,3 +53,4 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) matching thi
 - At least one acceptance criterion must be defined.
 - Do not suggest modifying migration files, settings files, or root conftest.py outside of `restricted_overrides`.
 - If complexity is "high", note this prominently — it will be flagged for human review.
+{feedback_section}

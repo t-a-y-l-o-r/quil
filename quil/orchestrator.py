@@ -23,6 +23,7 @@ from quil.agents import (
     get_diff,
     hash_paths,
     load_plan_json,
+    restricted_path_globs,
     run_code_review,
     run_coder,
     run_lint,
@@ -158,26 +159,30 @@ def plan_cmd(issue_number: int, *, log_dir: Path, no_approval: bool) -> None:
 
     logger.info("Starting Planner agent...")
     issue_context = json.dumps(issue, indent=2)
-    stream_log = log_dir / f"issue-{issue_number}" / "planner-stream.log"
-    window.start("planner")
-    plan_result = run_planner(
-        issue_context,
-        on_line=window.update_line,
-        log_file=stream_log,
-    )
-    window.stop()
-    save_output(issue_number, "planner", 1, plan_result.raw_output, log_dir)
 
-    if plan_result.plan is None:
+    plan, _, persistent = _run_planner_validated(
+        issue_context,
+        issue_number=issue_number,
+        log_dir=log_dir,
+        window=window,
+    )
+
+    if plan is None:
         click.echo("Planner produced no valid JSON plan.", err=True)
         sys.exit(1)
 
-    plan_path = save_plan_json(issue_number, plan_result.plan, log_dir)
+    plan_path = save_plan_json(issue_number, plan, log_dir)
     logger.info("Plan saved to %s", plan_path)
+    if persistent:
+        logger.error(
+            "Planner left %d restricted path(s) misclassified after retry: %s",
+            len(persistent),
+            ", ".join(persistent),
+        )
 
     if not no_approval:
         approved, confirmed_overrides = _gate_human_approval(
-            plan_result.plan, window=window
+            plan, window=window, classification_warnings=persistent
         )
         if not approved:
             click.echo("Plan not approved.")
@@ -189,7 +194,15 @@ def plan_cmd(issue_number: int, *, log_dir: Path, no_approval: bool) -> None:
             )
     else:
         window.deactivate()
-        click.echo(_format_plan_summary(plan_result.plan))
+        click.echo(_format_plan_summary(plan))
+        if persistent:
+            click.echo(
+                "\n⚠ WARNING: planner did not classify these restricted "
+                "paths as overrides (after one retry):",
+                err=True,
+            )
+            for p in persistent:
+                click.echo(f"  - {p}", err=True)
 
 
 @cli.command("code")
@@ -484,11 +497,17 @@ def _run_pipeline(
 ) -> None:
     """Execute the Planner -> Coder -> CI -> Review pipeline."""
     issue = _phase_fetch(repo, issue_number)
-    plan = _phase_plan(repo, issue_number, issue, log_dir, window=window)
+    plan, classification_warnings = _phase_plan(
+        repo, issue_number, issue, log_dir, window=window
+    )
     if plan is None:
         return
 
-    approved, confirmed_overrides = _gate_human_approval(plan, window=window)
+    approved, confirmed_overrides = _gate_human_approval(
+        plan,
+        window=window,
+        classification_warnings=classification_warnings,
+    )
     if not approved:
         _fail(
             repo,
@@ -537,6 +556,129 @@ def _phase_fetch(repo: str, issue_number: int) -> dict:
     return issue
 
 
+def _plan_referenced_paths(plan: dict) -> list[str]:
+    """Collect every path referenced in a plan outside ``restricted_overrides``.
+
+    Covers ``affected_files``, ``delete_files``, and the ``file`` field
+    of each entry in ``plan_steps``. Order is preserved and duplicates
+    are collapsed.
+    """
+    paths: list[str] = []
+    seen: set[str] = set()
+
+    def add(path: object) -> None:
+        if not isinstance(path, str) or not path:
+            return
+        if path in seen:
+            return
+        seen.add(path)
+        paths.append(path)
+
+    for entry in plan.get("affected_files") or []:
+        add(entry)
+    for entry in plan.get("delete_files") or []:
+        add(entry)
+    for step in plan.get("plan_steps") or []:
+        if isinstance(step, dict):
+            add(step.get("file"))
+    return paths
+
+
+def _validate_plan_classification(plan: dict) -> list[str]:
+    """Return paths that match a restricted glob but aren't declared as overrides.
+
+    The Coder is denied edits to anything in :func:`restricted_path_globs`.
+    Any such path that the Planner lists in ``affected_files`` /
+    ``delete_files`` / ``plan_steps`` instead of in
+    ``restricted_overrides`` will silently fail the run, so the
+    orchestrator validates this up front.
+    """
+    globs = restricted_path_globs()
+    if not globs:
+        return []
+    declared = {
+        entry.get("path")
+        for entry in plan.get("restricted_overrides") or []
+        if isinstance(entry, dict) and entry.get("path")
+    }
+    violations: list[str] = []
+    for path in _plan_referenced_paths(plan):
+        if path in declared:
+            continue
+        if any(g.match(path) for g in globs):
+            violations.append(path)
+    return violations
+
+
+def _format_classification_feedback(violations: list[str]) -> str:
+    """Build a feedback string telling the Planner how to fix misclassified paths."""
+    bulleted = "\n".join(f"  - {p}" for p in violations)
+    return (
+        "The previous plan placed the following restricted paths in "
+        "`affected_files`, `delete_files`, or `plan_steps`. Each is denied "
+        "to the Coder by default and MUST be moved into the "
+        "`restricted_overrides` array with a one-line `reason`. Remove "
+        "them from `affected_files`/`delete_files` and from any "
+        "`plan_steps[].file` entry that targets them.\n\n"
+        f"{bulleted}\n\n"
+        "Re-emit the full plan JSON with these paths correctly classified."
+    )
+
+
+def _run_planner_validated(
+    issue_context: str,
+    *,
+    issue_number: int,
+    log_dir: Path,
+    window: OutputWindow | None,
+) -> tuple[dict | None, str, list[str]]:
+    """Run the planner, validate restricted-path classification, retry once.
+
+    Returns ``(plan, raw_output, persistent_violations)``. If the second
+    attempt still misclassifies paths, the violations are returned so
+    the caller can warn the human. The plan is still returned so the
+    human can approve or reject it themselves.
+    """
+
+    def _invoke(attempt: int, feedback: str | None) -> tuple[dict | None, str]:
+        stream_log = log_dir / f"issue-{issue_number}" / f"planner-stream-{attempt}.log"
+        if window:
+            window.start("planner", timeout=PLANNER_TIMEOUT)
+        result = run_planner(
+            issue_context,
+            feedback=feedback,
+            on_line=window.update_line if window else None,
+            log_file=stream_log if window else None,
+        )
+        if window:
+            window.stop()
+        save_output(issue_number, "planner", attempt, result.raw_output, log_dir)
+        return result.plan, result.raw_output
+
+    plan, raw = _invoke(attempt=1, feedback=None)
+    if plan is None:
+        return None, raw, []
+
+    violations = _validate_plan_classification(plan)
+    if not violations:
+        return plan, raw, []
+
+    logger.warning(
+        "Planner misclassified %d restricted path(s); re-prompting: %s",
+        len(violations),
+        ", ".join(violations),
+    )
+    feedback = _format_classification_feedback(violations)
+    plan2, raw2 = _invoke(attempt=2, feedback=feedback)
+    if plan2 is None:
+        # Retry produced no valid JSON — fall back to the first plan and
+        # surface the original violations to the human.
+        return plan, raw, violations
+
+    persistent = _validate_plan_classification(plan2)
+    return plan2, raw2, persistent
+
+
 def _phase_plan(
     repo: str,
     issue_number: int,
@@ -544,45 +686,44 @@ def _phase_plan(
     log_dir: Path,
     *,
     window: OutputWindow | None = None,
-) -> dict | None:
-    """Run the Planner agent and return the plan, or None on failure."""
+) -> tuple[dict | None, list[str]]:
+    """Run the Planner agent and return ``(plan, persistent_violations)``.
+
+    ``persistent_violations`` is non-empty only if the planner failed
+    to classify restricted paths correctly even after a re-prompt; the
+    caller is responsible for warning the human at the approval gate.
+    """
     logger.info("Starting Planner agent...")
     transition(repo, issue_number, "agent-ready", "agent-planning")
 
     issue_context = json.dumps(issue, indent=2)
-    stream_log = log_dir / f"issue-{issue_number}" / "planner-stream.log"
 
-    if window:
-        window.start("planner", timeout=PLANNER_TIMEOUT)
-    plan_result = run_planner(
+    plan, _, persistent = _run_planner_validated(
         issue_context,
-        on_line=window.update_line if window else None,
-        log_file=stream_log if window else None,
-    )
-    if window:
-        window.stop()
-
-    save_output(
-        issue_number,
-        "planner",
-        1,
-        plan_result.raw_output,
-        log_dir,
+        issue_number=issue_number,
+        log_dir=log_dir,
+        window=window,
     )
 
-    if plan_result.plan is None:
+    if plan is None:
         _fail(
             repo,
             issue_number,
             "agent-planning",
             "Planner produced no valid JSON plan.",
         )
-        return None
+        return None, []
 
-    save_plan_json(issue_number, plan_result.plan, log_dir)
-    classification = plan_result.plan.get("classification")
+    save_plan_json(issue_number, plan, log_dir)
+    classification = plan.get("classification")
     logger.info("Plan received. Classification: %s", classification)
-    return plan_result.plan
+    if persistent:
+        logger.error(
+            "Planner left %d restricted path(s) misclassified after retry: %s",
+            len(persistent),
+            ", ".join(persistent),
+        )
+    return plan, persistent
 
 
 def _format_plan_summary(plan: dict) -> str:
@@ -651,6 +792,7 @@ def _format_plan_summary(plan: dict) -> str:
 def _gate_human_approval(
     plan: dict,
     window: OutputWindow | None = None,
+    classification_warnings: list[str] | None = None,
 ) -> tuple[bool, list[str]]:
     """Display the plan summary and gate the run on human approval.
 
@@ -660,8 +802,26 @@ def _gate_human_approval(
     pipeline. Returns ``(approved, confirmed_overrides)`` where
     ``confirmed_overrides`` is the list of override paths the human
     explicitly authorized for editing.
+
+    ``classification_warnings`` lists paths the orchestrator detected as
+    restricted but the planner failed to declare in
+    ``restricted_overrides``, even after a corrective re-prompt. They
+    are surfaced to the human before approval so they can reject the
+    plan or override-and-proceed knowingly.
     """
     summary = _format_plan_summary(plan)
+    if classification_warnings:
+        warning_lines = [
+            "",
+            "  ⚠ WARNING: planner did not classify these restricted "
+            "paths as overrides (after one retry):",
+        ]
+        warning_lines.extend(f"    - {p}" for p in classification_warnings)
+        warning_lines.append(
+            "    The Coder will be denied edits to these paths. "
+            "Reject the plan or accept knowing the run will likely fail."
+        )
+        summary = summary + "\n" + "\n".join(warning_lines)
     if window:
         window.show_plan(summary)
     else:
