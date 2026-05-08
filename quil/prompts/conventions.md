@@ -30,7 +30,7 @@ When a change touches one domain, the affected files follow this pattern:
 
 These paths require human review. The Planner must declare any genuinely-needed edit in `restricted_overrides` so the human can approve it per-file; without that approval the Coder is denied edits to these paths:
 
-- `<repo>/migrations/` — never edit migration files directly
+- `<repo>/migrations/` — never edit migration files. The orchestrator runs `makemigrations` after the Coder finishes and stages the result; do not declare migration paths in `restricted_overrides` or any other plan field
 - `project/settings/` — settings changes require human review
 - `pyproject.toml` — never modify linter config, dependencies, or project metadata
 - `conftest.py` (root) — shared test infrastructure; changes affect all tests

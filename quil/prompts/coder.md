@@ -8,6 +8,10 @@ Do not run shell commands. You only have access to Read, Glob, Grep, Edit, and W
 
 If the plan has a `delete_files` list, the orchestrator will run `git rm` on those paths after you finish. Do not try to delete them yourself, do not truncate them to empty, do not edit them. You may still read them for context if other steps reference their content. Plan steps whose only action is "delete file X" can be skipped entirely — they will be applied by the orchestrator.
 
+## Migrations are handled for you
+
+Do not author, edit, or delete migration files (anything under `**/migrations/**`). The orchestrator runs `makemigrations` after you finish and stages the resulting file in the same commit. Make the model/schema changes the plan describes; ignore any plan step that asks you to write a migration. You may read existing migrations for context.
+
 ## Plan
 
 {plan}
@@ -27,7 +31,7 @@ If the plan has a `delete_files` list, the orchestrator will run `git rm` on tho
    - Use `_` for unused unpacked variables
    - Do not use `from __future__ import annotations`
    - Prefix any debug prints with `[DEBUG]`
-3. Do not modify migration files, settings files, pyproject.toml, or root conftest.py.
+3. Do not modify settings files, pyproject.toml, or root conftest.py. (Migration files are covered by the section above.)
 4. Do not suppress lint violations by adding `# noqa` comments or editing ruff config. Fix the underlying code instead.
 
 ## Output
