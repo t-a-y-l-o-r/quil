@@ -6,9 +6,18 @@ import subprocess
 import threading
 from collections import deque
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class StreamConfig:
+    log_file: Path | None = None
+    on_line: Callable[[str, str], None] | None = None
+    timeout: int | None = None
+    cwd: str | None = None
 
 
 def parse_stream_event(line: str) -> tuple[str | None, str | None]:
@@ -72,18 +81,15 @@ class StreamingProcess:
         self,
         cmd: list[str],
         label: str,
-        *,
-        log_file: Path | None = None,
-        on_line: Callable[[str, str], None] | None = None,
-        timeout: int | None = None,
-        cwd: str | None = None,
+        config: StreamConfig | None = None,
     ) -> None:
+        cfg = config or StreamConfig()
         self._cmd = cmd
         self._label = label
-        self._log_file = log_file
-        self._on_line = on_line
-        self._timeout = timeout
-        self._cwd = cwd
+        self._log_file = cfg.log_file
+        self._on_line = cfg.on_line
+        self._timeout = cfg.timeout
+        self._cwd = cfg.cwd
 
         self._raw_lines: list[str] = []
         self._result_text: str | None = None

@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from quil.stream import StreamingProcess
+from quil.stream import StreamConfig, StreamingProcess
 
 logger = logging.getLogger(__name__)
 
@@ -205,9 +205,11 @@ def run_planner(
         proc = StreamingProcess(
             cmd,
             "planner",
-            log_file=log_file,
-            on_line=on_line,
-            timeout=PLANNER_TIMEOUT,
+            StreamConfig(
+                log_file=log_file,
+                on_line=on_line,
+                timeout=PLANNER_TIMEOUT,
+            ),
         )
         try:
             text = proc.run()
@@ -264,14 +266,21 @@ def run_planner(
 CODER_PLAN_KEYS = ("plan_steps", "affected_files", "acceptance_criteria")
 
 
+@dataclass
+class CoderInvocation:
+    """Optional runtime hooks for a coder/override-coder run."""
+
+    cwd: str | None = None
+    on_line: Callable[[str, str], None] | None = None
+    log_file: Path | None = None
+
+
 def run_coder(
     plan: dict,
     branch_name: str,
     feedback: str | None = None,
-    cwd: str | None = None,
     *,
-    on_line: Callable[[str, str], None] | None = None,
-    log_file: Path | None = None,
+    invocation: CoderInvocation | None = None,
 ) -> CoderResult:
     """Invoke the Coder agent to implement the plan.
 
@@ -281,6 +290,7 @@ def run_coder(
     used by the orchestrator and human approval gate but are not
     actionable for the Coder.
     """
+    inv = invocation or CoderInvocation()
     coder_plan = {k: plan[k] for k in CODER_PLAN_KEYS if k in plan}
     plan_json = json.dumps(coder_plan)
 
@@ -313,15 +323,17 @@ def run_coder(
         "10",
     ]
 
-    if on_line is not None:
+    if inv.on_line is not None:
         cmd.extend(["--output-format", "stream-json", "--verbose"])
         proc = StreamingProcess(
             cmd,
             "coder",
-            log_file=log_file,
-            on_line=on_line,
-            timeout=CODER_TIMEOUT,
-            cwd=cwd,
+            StreamConfig(
+                log_file=inv.log_file,
+                on_line=inv.on_line,
+                timeout=CODER_TIMEOUT,
+                cwd=inv.cwd,
+            ),
         )
         try:
             raw = proc.run()
@@ -336,7 +348,7 @@ def run_coder(
                 capture_output=True,
                 text=True,
                 timeout=CODER_TIMEOUT,
-                cwd=cwd,
+                cwd=inv.cwd,
                 check=False,
             )
         except subprocess.TimeoutExpired as exc:
@@ -349,7 +361,7 @@ def run_coder(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"],
         capture_output=True,
         text=True,
-        cwd=cwd,
+        cwd=inv.cwd,
         check=False,
     )
     branch = branch_result.stdout.strip() or branch_name
@@ -502,11 +514,9 @@ def run_override_coder(
     plan: dict,
     branch_name: str,
     confirmed_overrides: list[str],
-    *,
     feedback: str | None = None,
-    cwd: str | None = None,
-    on_line: Callable[[str, str], None] | None = None,
-    log_file: Path | None = None,
+    *,
+    invocation: CoderInvocation | None = None,
 ) -> CoderResult:
     """Invoke a scoped Coder pass for human-approved restricted paths.
 
@@ -520,6 +530,7 @@ def run_override_coder(
     if not confirmed_overrides:
         return CoderResult(raw_output="", branch=branch_name)
 
+    inv = invocation or CoderInvocation()
     coder_plan = {k: plan[k] for k in CODER_PLAN_KEYS if k in plan}
     plan_json = json.dumps(coder_plan)
 
@@ -564,15 +575,17 @@ def run_override_coder(
     ]
 
     try:
-        if on_line is not None:
+        if inv.on_line is not None:
             cmd.extend(["--output-format", "stream-json", "--verbose"])
             proc = StreamingProcess(
                 cmd,
                 "override-coder",
-                log_file=log_file,
-                on_line=on_line,
-                timeout=CODER_TIMEOUT,
-                cwd=cwd,
+                StreamConfig(
+                    log_file=inv.log_file,
+                    on_line=inv.on_line,
+                    timeout=CODER_TIMEOUT,
+                    cwd=inv.cwd,
+                ),
             )
             try:
                 raw = proc.run()
@@ -587,7 +600,7 @@ def run_override_coder(
                     capture_output=True,
                     text=True,
                     timeout=CODER_TIMEOUT,
-                    cwd=cwd,
+                    cwd=inv.cwd,
                     check=False,
                 )
             except subprocess.TimeoutExpired as exc:
@@ -636,9 +649,11 @@ def run_code_review(
         proc = StreamingProcess(
             cmd,
             "reviewer",
-            log_file=log_file,
-            on_line=on_line,
-            timeout=CODE_REVIEW_TIMEOUT,
+            StreamConfig(
+                log_file=log_file,
+                on_line=on_line,
+                timeout=CODE_REVIEW_TIMEOUT,
+            ),
         )
         try:
             raw = proc.run()
