@@ -38,8 +38,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "ARG001", "PLR2004"]
-"tests/**" = ["S101", "ARG001", "PLR2004"]
+"**/tests/**" = ["S101", "ARG001", "PLR2004", "PERF203"]
+"tests/**" = ["S101", "ARG001", "PLR2004", "PERF203"]
 "conftest.py" = ["S101"]
 
 [tool.ruff.format]
