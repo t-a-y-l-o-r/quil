@@ -767,11 +767,10 @@ def _format_plan_summary(plan: dict) -> str:
     branch = plan.get("branch_name", "unknown")
     lines.append(f"  Branch:       {branch}")
 
-    affected = plan.get("affected_files", [])
+    affected: list[str] = plan.get("affected_files", [])
     if affected:
         lines.append(f"  Files:        {len(affected)} affected")
-        for f in affected:
-            lines.append(f"                  {f}")
+        lines.extend(map(lambda x: f"                  {x}", affected))
 
     overrides = plan.get("restricted_overrides", [])
     if overrides:
@@ -798,19 +797,17 @@ def _format_plan_summary(plan: dict) -> str:
             else:
                 lines.append(f"{prefix}{desc}")
 
-    risks = plan.get("risks", [])
+    risks: list[str] = plan.get("risks", [])
     if risks:
         lines.append("")
         lines.append("  Risks:")
-        for r in risks:
-            lines.append(f"    - {r}")
+        lines.extend(map(lambda x: f"    - {x}", risks))
 
-    criteria = plan.get("acceptance_criteria", [])
+    criteria: list[str] = plan.get("acceptance_criteria", [])
     if criteria:
         lines.append("")
         lines.append("  Acceptance:")
-        for c in criteria:
-            lines.append(f"    - {c}")
+        lines.extend(map(lambda x: f"    - {x}" , criteria))
 
     return "\n".join(lines)
 
@@ -1185,7 +1182,7 @@ def _dirty_paths(cwd: str) -> list[str]:
     paths: list[str] = []
     for raw in result.stdout.splitlines():
         if len(raw) >= _PORCELAIN_PREFIX_LEN:
-            paths.append(raw[_PORCELAIN_PREFIX_LEN:].strip())
+            paths.extend(r.strip() for r in raw[_PORCELAIN_PREFIX_LEN])
     return paths
 
 
