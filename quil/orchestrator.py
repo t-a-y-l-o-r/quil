@@ -16,6 +16,7 @@ from quil.agents import (
     CODER_TIMEOUT,
     MIGRATION_TIMEOUT,
     PLANNER_TIMEOUT,
+    CoderInvocation,
     SensorResult,
     autofix_lint,
     changed_paths,
@@ -73,6 +74,21 @@ class Verdict:
     # so the outer loop can pass the right from_label to the next
     # transition without assuming the happy path was taken.
     current_label: str = "agent-reviewing"
+
+
+@dataclass
+class IssueContext:
+    """Shared orchestration state threaded through the attempt phases."""
+
+    repo: str
+    issue_number: int
+    issue: dict
+    plan: dict
+    branch_name: str
+    cwd: str
+    log_dir: Path
+    window: OutputWindow | None = None
+    confirmed_overrides: list[str] = field(default_factory=list)
 
 
 def _setup_logging(
@@ -258,14 +274,18 @@ def code_cmd(
     logger.info("Branch: %s", branch_name)
 
     lint_result = _code_and_lint(
-        issue_number,
-        plan,
-        branch_name,
+        IssueContext(
+            repo=repo,
+            issue_number=issue_number,
+            issue=issue,
+            plan=plan,
+            branch_name=branch_name,
+            cwd=cwd,
+            log_dir=log_dir,
+            window=window,
+        ),
         attempt=1,
         feedback=feedback,
-        cwd=cwd,
-        log_dir=log_dir,
-        window=window,
     )
 
     window.deactivate()
@@ -529,15 +549,18 @@ def _run_pipeline(
         )
 
     pr_url = _phase_code_review_loop(
-        repo,
-        issue_number,
-        issue,
-        plan,
-        branch_name=branch_name,
-        max_attempts=max_attempts,
-        log_dir=log_dir,
-        window=window,
-        confirmed_overrides=confirmed_overrides,
+        IssueContext(
+            repo=repo,
+            issue_number=issue_number,
+            issue=issue,
+            plan=plan,
+            branch_name=branch_name,
+            cwd=str(Path.cwd()),
+            log_dir=log_dir,
+            window=window,
+            confirmed_overrides=confirmed_overrides or [],
+        ),
+        max_attempts,
     )
 
     if pr_url:
@@ -856,21 +879,12 @@ def _gate_human_approval(
 
 
 def _phase_code_review_loop(
-    repo: str,
-    issue_number: int,
-    issue: dict,
-    plan: dict,
-    *,
-    branch_name: str,
+    ctx: IssueContext,
     max_attempts: int,
-    log_dir: Path,
-    window: OutputWindow | None = None,
-    confirmed_overrides: list[str] | None = None,
 ) -> str | None:
     """Run the Coder/CI/Review loop. Returns the PR URL if approved."""
-    plan_json = json.dumps(plan, indent=2)
+    plan_json = json.dumps(ctx.plan, indent=2)
     feedback: str | None = None
-    cwd = str(Path.cwd())
     pr_url: str | None = None
     next_from_label = "agent-planning"
 
@@ -878,19 +892,11 @@ def _phase_code_review_loop(
         logger.info("=== Attempt %d/%d ===", attempt, max_attempts)
 
         verdict = _single_attempt(
-            repo,
-            issue_number,
-            issue,
-            plan,
-            plan_json,
-            branch_name=branch_name,
+            ctx,
+            plan_json=plan_json,
             attempt=attempt,
             from_label=next_from_label,
             feedback=feedback,
-            cwd=cwd,
-            log_dir=log_dir,
-            window=window,
-            confirmed_overrides=confirmed_overrides or [],
         )
 
         if verdict.pr_url:
@@ -918,8 +924,8 @@ def _phase_code_review_loop(
 
         if attempt == max_attempts:
             transition(
-                repo,
-                issue_number,
+                ctx.repo,
+                ctx.issue_number,
                 verdict.current_label,
                 "agent-rejected",
             )
@@ -927,7 +933,7 @@ def _phase_code_review_loop(
                 f"Agent pipeline rejected after {max_attempts} "
                 f"attempts.\n\nLast feedback:\n{feedback}"
             )
-            comment_on_issue(repo, issue_number, msg)
+            comment_on_issue(ctx.repo, ctx.issue_number, msg)
             return None
 
         next_from_label = verdict.current_label
@@ -1210,17 +1216,11 @@ def _push_branch(
 
 
 def _run_override_pass(
+    ctx: IssueContext,
     *,
-    issue_number: int,
-    plan: dict,
-    branch_name: str,
     attempt: int,
     lint_try: int,
     feedback: str | None,
-    cwd: str,
-    log_dir: Path,
-    window: OutputWindow | None,
-    confirmed_overrides: list[str],
 ) -> SensorResult | None:
     """Run the override coder pass and verify it stayed in scope.
 
@@ -1229,42 +1229,44 @@ def _run_override_pass(
     failed ``SensorResult`` is returned so the outer attempt is marked
     as failed without committing the bad state.
     """
-    pre_paths = changed_paths(cwd)
-    pre_hashes = hash_paths(cwd, pre_paths)
+    pre_paths = changed_paths(ctx.cwd)
+    pre_hashes = hash_paths(ctx.cwd, pre_paths)
 
     suffix = f"-lint{lint_try}" if lint_try > 0 else ""
     stream_log = (
-        log_dir
-        / f"issue-{issue_number}"
+        ctx.log_dir
+        / f"issue-{ctx.issue_number}"
         / f"override-coder-stream-{attempt}{suffix}.log"
     )
-    if window:
-        window.start("override-coder", timeout=CODER_TIMEOUT)
+    if ctx.window:
+        ctx.window.start("override-coder", timeout=CODER_TIMEOUT)
     override_result = run_override_coder(
-        plan,
-        branch_name,
-        confirmed_overrides,
-        feedback=feedback,
-        cwd=cwd,
-        on_line=window.update_line if window else None,
-        log_file=stream_log if window else None,
+        ctx.plan,
+        ctx.branch_name,
+        ctx.confirmed_overrides,
+        feedback,
+        invocation=CoderInvocation(
+            cwd=ctx.cwd,
+            on_line=ctx.window.update_line if ctx.window else None,
+            log_file=stream_log if ctx.window else None,
+        ),
     )
-    if window:
-        window.stop()
+    if ctx.window:
+        ctx.window.stop()
 
     save_output(
-        issue_number,
+        ctx.issue_number,
         "override-coder",
         attempt if lint_try == 0 else f"{attempt}-lint{lint_try}",
         override_result.raw_output,
-        log_dir,
+        ctx.log_dir,
     )
 
     violations = detect_override_violations(
         pre_paths=pre_paths,
         pre_hashes=pre_hashes,
-        cwd=cwd,
-        approved=confirmed_overrides,
+        cwd=ctx.cwd,
+        approved=ctx.confirmed_overrides,
     )
     if violations:
         logger.error(
@@ -1284,16 +1286,10 @@ def _run_override_pass(
 
 
 def _code_and_lint(
-    issue_number: int,
-    plan: dict,
-    branch_name: str,
+    ctx: IssueContext,
     *,
     attempt: int,
     feedback: str | None,
-    cwd: str,
-    log_dir: Path,
-    window: OutputWindow | None = None,
-    confirmed_overrides: list[str] | None = None,
 ) -> SensorResult:
     """Run the Coder then lint, retrying lint failures locally.
 
@@ -1307,13 +1303,13 @@ def _code_and_lint(
 
     Returns the final lint SensorResult (passed or not).
     """
-    _checkout_branch(branch_name, cwd, window=window)
+    _checkout_branch(ctx.branch_name, ctx.cwd, window=ctx.window)
 
     # Snapshot pre-existing lint violations before the coder touches anything.
     # Only new violations (count increased per file+rule) will be failures.
-    plan_files = plan.get("affected_files", [])
+    plan_files = ctx.plan.get("affected_files", [])
     existing_files = [f for f in plan_files if Path(f).exists()]
-    baseline = snapshot_lint(cwd, existing_files) if existing_files else {}
+    baseline = snapshot_lint(ctx.cwd, existing_files) if existing_files else {}
     if baseline:
         logger.info(
             "Lint baseline: %d pre-existing violations across %d files",
@@ -1329,42 +1325,40 @@ def _code_and_lint(
             suffix,
         )
         stream_log = (
-            log_dir / f"issue-{issue_number}" / f"coder-stream-{attempt}-{lint_try}.log"
+            ctx.log_dir
+            / f"issue-{ctx.issue_number}"
+            / f"coder-stream-{attempt}-{lint_try}.log"
         )
 
-        if window:
-            window.start("coder", timeout=CODER_TIMEOUT)
+        if ctx.window:
+            ctx.window.start("coder", timeout=CODER_TIMEOUT)
         coder_result = run_coder(
-            plan,
-            branch_name,
-            feedback=feedback,
-            cwd=cwd,
-            on_line=window.update_line if window else None,
-            log_file=stream_log if window else None,
+            ctx.plan,
+            ctx.branch_name,
+            feedback,
+            invocation=CoderInvocation(
+                cwd=ctx.cwd,
+                on_line=ctx.window.update_line if ctx.window else None,
+                log_file=stream_log if ctx.window else None,
+            ),
         )
-        if window:
-            window.stop()
+        if ctx.window:
+            ctx.window.stop()
 
         save_output(
-            issue_number,
+            ctx.issue_number,
             "coder",
             attempt if lint_try == 0 else f"{attempt}-lint{lint_try}",
             coder_result.raw_output,
-            log_dir,
+            ctx.log_dir,
         )
 
-        if confirmed_overrides:
+        if ctx.confirmed_overrides:
             override_result = _run_override_pass(
-                issue_number=issue_number,
-                plan=plan,
-                branch_name=branch_name,
+                ctx,
                 attempt=attempt,
                 lint_try=lint_try,
                 feedback=feedback,
-                cwd=cwd,
-                log_dir=log_dir,
-                window=window,
-                confirmed_overrides=confirmed_overrides,
             )
             if override_result is not None:
                 return override_result
@@ -1372,15 +1366,15 @@ def _code_and_lint(
         # Generate Django migrations the plan requires. Run before
         # autofix so any autogenerated file is also auto-fixed and
         # included in the same commit as the model edits.
-        migration_result = _apply_migrations(plan, cwd, window=window)
+        migration_result = _apply_migrations(ctx.plan, ctx.cwd, window=ctx.window)
 
         # Apply auto-fixable lint rules (I001 isort, etc.) before
         # committing so the commit already matches what any pre-push
         # hooks would produce — otherwise the hook rewrites the working
         # tree post-push and leaves uncommitted drift.
-        autofix_targets = changed_paths(cwd)
+        autofix_targets = changed_paths(ctx.cwd)
         if autofix_targets:
-            autofix_result = autofix_lint(cwd, sorted(autofix_targets))
+            autofix_result = autofix_lint(ctx.cwd, sorted(autofix_targets))
             if not autofix_result.passed:
                 logger.warning(
                     "ruff auto-fix exited non-zero (fix_rc=%s, format_rc=%s); "
@@ -1389,8 +1383,8 @@ def _code_and_lint(
                     autofix_result.details.get("format_rc"),
                 )
 
-        _apply_deletions(plan, cwd, window=window)
-        _commit_changes(plan, cwd, window=window)
+        _apply_deletions(ctx.plan, ctx.cwd, window=ctx.window)
+        _commit_changes(ctx.plan, ctx.cwd, window=ctx.window)
 
         # Surface migration failures via the same retry loop that
         # handles lint, so the coder can fix the underlying model
@@ -1414,9 +1408,9 @@ def _code_and_lint(
                 continue
             return migration_result
 
-        changed_files = get_changed_files(cwd)
+        changed_files = get_changed_files(ctx.cwd)
         logger.info("Running lint on %d changed files...", len(changed_files))
-        lint_result = run_lint(cwd, changed_files=changed_files, baseline=baseline)
+        lint_result = run_lint(ctx.cwd, changed_files=changed_files, baseline=baseline)
         logger.info(
             "Lint: %s",
             "PASS" if lint_result.passed else "FAIL",
@@ -1442,34 +1436,20 @@ def _code_and_lint(
 
 
 def _single_attempt(
-    repo: str,
-    issue_number: int,
-    issue: dict,
-    plan: dict,
-    plan_json: str,
+    ctx: IssueContext,
     *,
-    branch_name: str,
+    plan_json: str,
     attempt: int,
     from_label: str,
     feedback: str | None,
-    cwd: str,
-    log_dir: Path,
-    window: OutputWindow | None = None,
-    confirmed_overrides: list[str] | None = None,
 ) -> Verdict:
     """Run one code + CI + review cycle. Returns a Verdict."""
     # --- Code + lint inner loop ---
-    transition(repo, issue_number, from_label, "agent-coding")
+    transition(ctx.repo, ctx.issue_number, from_label, "agent-coding")
     lint_result = _code_and_lint(
-        issue_number,
-        plan,
-        branch_name,
+        ctx,
         attempt=attempt,
         feedback=feedback,
-        cwd=cwd,
-        log_dir=log_dir,
-        window=window,
-        confirmed_overrides=confirmed_overrides or [],
     )
 
     if not lint_result.passed:
@@ -1491,10 +1471,10 @@ def _single_attempt(
         )
 
     # --- Push + draft PR (first attempt) + CI ---
-    logger.info("Pushing branch %s...", branch_name)
-    _push_branch(branch_name, cwd, window=window)
+    logger.info("Pushing branch %s...", ctx.branch_name)
+    _push_branch(ctx.branch_name, ctx.cwd, window=ctx.window)
 
-    dirty = _dirty_paths(cwd)
+    dirty = _dirty_paths(ctx.cwd)
     if dirty:
         msg = (
             "Working tree is not clean after push — committed code "
@@ -1510,25 +1490,25 @@ def _single_attempt(
     pr_url: str | None = None
     if attempt == 1:
         logger.info("Creating draft PR to trigger CI...")
-        pr_url = create_draft_pr(repo, branch_name, issue, plan)
+        pr_url = create_draft_pr(ctx.repo, ctx.branch_name, ctx.issue, ctx.plan)
         logger.info("Draft PR: %s", pr_url)
 
     transition(
-        repo,
-        issue_number,
+        ctx.repo,
+        ctx.issue_number,
         "agent-coding",
         "agent-ci-pending",
     )
 
     logger.info("Waiting for CI...")
-    ci = wait_for_ci(repo, branch_name)
+    ci = wait_for_ci(ctx.repo, ctx.branch_name)
 
     # --- Parse test results from the Test workflow specifically ---
     test_report = TestReport()
     if ci.test_run_id:
-        test_log = get_failed_logs(repo, ci.test_run_id)
+        test_log = get_failed_logs(ctx.repo, ci.test_run_id)
         if not test_log:
-            test_log = get_run_log(repo, ci.test_run_id)
+            test_log = get_run_log(ctx.repo, ci.test_run_id)
         test_report = parse_test_output(test_log)
         logger.info(
             "Tests: %d passed, %d failed, %d errors (of %d total)",
@@ -1539,45 +1519,45 @@ def _single_attempt(
         )
         if test_log:
             save_output(
-                issue_number,
+                ctx.issue_number,
                 "ci-logs",
                 attempt,
                 test_log,
-                log_dir,
+                ctx.log_dir,
             )
     else:
         logger.warning("No Test workflow run found — cannot parse test results")
 
     # --- Code review (LLM — diff + plan only) ---
     transition(
-        repo,
-        issue_number,
+        ctx.repo,
+        ctx.issue_number,
         "agent-ci-pending",
         "agent-reviewing",
     )
-    diff = get_diff(cwd)
+    diff = get_diff(ctx.cwd)
     logger.info("Starting code review agent (attempt %d)...", attempt)
     review_stream_log = (
-        log_dir / f"issue-{issue_number}" / f"review-stream-{attempt}.log"
+        ctx.log_dir / f"issue-{ctx.issue_number}" / f"review-stream-{attempt}.log"
     )
 
-    if window:
-        window.start("reviewer", timeout=CODE_REVIEW_TIMEOUT)
+    if ctx.window:
+        ctx.window.start("reviewer", timeout=CODE_REVIEW_TIMEOUT)
     review_result = run_code_review(
         diff=diff,
         plan_json=plan_json,
-        on_line=window.update_line if window else None,
-        log_file=review_stream_log if window else None,
+        on_line=ctx.window.update_line if ctx.window else None,
+        log_file=review_stream_log if ctx.window else None,
     )
-    if window:
-        window.stop()
+    if ctx.window:
+        ctx.window.stop()
 
     save_output(
-        issue_number,
+        ctx.issue_number,
         "code-review",
         attempt,
         review_result.raw_output,
-        log_dir,
+        ctx.log_dir,
     )
 
     # --- Assemble verdict (deterministic) ---
