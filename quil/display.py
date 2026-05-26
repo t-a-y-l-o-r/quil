@@ -395,9 +395,13 @@ class WindowAwareHandler(logging.Handler):
         self._window = window
 
     def emit(self, record: logging.LogRecord) -> None:
+        ''' Emitter for desciding where logs go
+
+        All errors do need to be captured here
+        '''
         try:
             msg = self.format(record) + "\n"
             with self._window.lock:
                 self._window.emit_above(msg)
-        except Exception:
+        except Exception: # noqa: BLE001
             self.handleError(record)
