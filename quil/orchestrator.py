@@ -32,11 +32,10 @@ from quil.agents import (
     run_lint,
     run_override_coder,
     run_planner,
-    snapshot_lint,
     save_output,
     save_plan_json,
+    snapshot_lint,
 )
-from quil.display import OutputWindow, WindowAwareHandler
 from quil.ci import (
     CIResult,
     TestReport,
@@ -45,6 +44,7 @@ from quil.ci import (
     parse_test_output,
     wait_for_ci,
 )
+from quil.display import OutputWindow, WindowAwareHandler
 from quil.state import (
     comment_on_issue,
     derive_branch_name,

@@ -5,8 +5,8 @@ import logging
 import subprocess
 import threading
 from collections import deque
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +92,8 @@ class StreamingProcess:
 
     def _reader(
         self,
-        pipe,  # noqa: ANN001 — typed as IO[str] at runtime
-        log_fh,  # noqa: ANN001
+        pipe,
+        log_fh,
     ) -> None:
         """Read stdout line-by-line in a daemon thread."""
         try:

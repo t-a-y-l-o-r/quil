@@ -245,7 +245,7 @@ The orchestrator is a Python CLI (`quil/orchestrator.py`, entry point `quil`):
 agent-ready → agent-planning → agent-coding → agent-ci-pending → agent-reviewing → agent-pr-open
                                     ▲                                    │
                                     └────────── agent-rejected (max 3x) ─┘
-                                    
+
 agent-failed → (human intervention needed)
 ```
 

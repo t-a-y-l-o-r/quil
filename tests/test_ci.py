@@ -13,7 +13,8 @@ from quil.ci import parse_test_output
 def test_summary_with_decoy_uv_install_line() -> None:
     """The bug from issue #18: an earlier `<N> <word> in <time>s` line
     in the CI log (uv install output) used to capture the regex first,
-    leaving pytest counts at zero."""
+    leaving pytest counts at zero.
+    """
     log = (
         "test\tSet up uv\t2026-05-01T19:55:01.0000000Z + uv sync\n"
         "test\tSet up uv\t2026-05-01T19:55:02.0000000Z Resolved 84 packages in 2.18s\n"
@@ -59,7 +60,8 @@ def test_clean_run_no_failures() -> None:
 
 def test_no_summary_line_returns_zeros() -> None:
     """If pytest never emitted a summary (e.g. infra crash), counts stay
-    at zero but failed_tests can still be populated from FAILED lines."""
+    at zero but failed_tests can still be populated from FAILED lines.
+    """
     log = (
         "test\tRun tests\t2026-05-01T20:00:00Z FAILED tests/x.py::test_a\n"
         "test\tRun tests\t2026-05-01T20:00:01Z [crash]\n"
@@ -72,7 +74,8 @@ def test_no_summary_line_returns_zeros() -> None:
 
 def test_multiple_pytest_invocations_use_last() -> None:
     """If a CI step ran pytest twice, the final summary is the source
-    of truth."""
+    of truth.
+    """
     log = (
         "test\tRun tests\t2026-05-01T20:00:00Z 5 passed in 0.10s\n"
         "test\tRun tests\t2026-05-01T20:00:05Z 1 failed, 9 passed in 0.50s\n"
@@ -96,9 +99,7 @@ def test_decoy_lines_with_outcome_lookalike_words_do_not_match() -> None:
 
 
 def _run_all() -> None:
-    tests = [
-        v for k, v in globals().items() if k.startswith("test_") and callable(v)
-    ]
+    tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     failures = 0
     for fn in tests:
         try:

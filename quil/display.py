@@ -24,7 +24,6 @@ import threading
 import time
 from collections import deque
 
-
 STREAM_HEIGHT = 10
 MIN_LOG_ROWS = 3
 
@@ -42,6 +41,7 @@ def _sanitize_stream_line(text: str) -> str:
     """
     text = _ANSI_ESCAPE_RE.sub("", text)
     return _WHITESPACE_RUN_RE.sub(" ", text).strip()
+
 
 # ANSI color codes
 _RESET = "\033[0m"
@@ -304,9 +304,7 @@ class OutputWindow:
         for i in range(STREAM_HEIGHT):
             row = content_start + i
             if i < len(self._stream_lines):
-                self._write_at(
-                    row, self._stream_content_line(self._stream_lines[i])
-                )
+                self._write_at(row, self._stream_content_line(self._stream_lines[i]))
             else:
                 self._write_at(row, self._stream_content_line(""))
 
@@ -376,7 +374,9 @@ class OutputWindow:
         inner = self._inner_width()
         truncated = text[:inner]
         padded = truncated.ljust(inner)
-        return f"{_STREAM_COLOR}│{_RESET} {_DIM}{padded}{_RESET} {_STREAM_COLOR}│{_RESET}"
+        return (
+            f"{_STREAM_COLOR}│{_RESET} {_DIM}{padded}{_RESET} {_STREAM_COLOR}│{_RESET}"
+        )
 
     def _write_at(self, row: int, text: str) -> None:
         sys.stderr.write(f"\033[{row};1H\033[2K{text}")
