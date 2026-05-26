@@ -496,17 +496,10 @@ def detect_override_violations(
     post = changed_paths(cwd)
     post_hashes = hash_paths(cwd, post)
     violations: list[str] = []
-    for p in post - pre_paths:
-        if p not in approved_set:
-            violations.append(p)
-    for p in pre_paths & post:
-        if p in approved_set:
-            continue
-        if pre_hashes.get(p) != post_hashes.get(p):
-            violations.append(p)
-    for p in pre_paths - post:
-        if p not in approved_set:
-            violations.append(p)
+    violations.extend(p for p in post - pre_paths if p not in approved_set)
+    violations.extend(p for p in pre_paths & post \
+            if p not in approved_set and pre_hashes.get(p) != post_hashes.get(p))
+    violations.extend(p for p in pre_paths - post if p not in approved_set)
     return sorted(set(violations))
 
 
