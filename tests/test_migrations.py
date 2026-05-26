@@ -8,6 +8,7 @@ Runnable two ways:
 import subprocess
 from unittest.mock import MagicMock, patch
 
+from . import exceptions
 from quil.agents import (
     DJANGO_SETTINGS_FOR_MIGRATIONS,
     MIGRATION_TIMEOUT,
@@ -142,7 +143,7 @@ def _run_all() -> None:
             failures += 1
             print(f"  ERR   {fn.__name__}: {type(exc).__name__}: {exc}")
     if failures:
-        raise SystemExit(f"{failures} test(s) failed")
+        raise exceptions.Exit(failures)
     print(f"\n{len(tests)} test(s) passed")
 
 

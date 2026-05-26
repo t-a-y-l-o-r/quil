@@ -7,6 +7,7 @@ Runnable two ways:
 No external dependencies — uses plain assert.
 """
 
+from . import exceptions
 from quil.ci import parse_test_output
 
 
@@ -109,7 +110,7 @@ def _run_all() -> None:
             failures += 1
             print(f"  FAIL  {fn.__name__}: {exc}")
     if failures:
-        raise SystemExit(f"{failures} test(s) failed")
+        raise exceptions.Exit(failures)
     print(f"\n{len(tests)} test(s) passed")
 
 

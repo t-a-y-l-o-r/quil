@@ -5,6 +5,7 @@ Runnable two ways:
 - Pytest:          pytest tests/test_plan_validation.py
 """
 
+from . import exceptions
 from quil.agents import restricted_path_globs
 from quil.orchestrator import (
     _format_classification_feedback,
@@ -111,6 +112,7 @@ def test_format_feedback_includes_each_violation() -> None:
     assert "Re-emit" in feedback
 
 
+
 def _run_all() -> None:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     failures = 0
@@ -125,7 +127,7 @@ def _run_all() -> None:
             failures += 1
             print(f"  ERR   {fn.__name__}: {type(exc).__name__}: {exc}")
     if failures:
-        raise SystemExit(f"{failures} test(s) failed")
+        raise exceptions.Exit(failures)
     print(f"\n{len(tests)} test(s) passed")
 
 

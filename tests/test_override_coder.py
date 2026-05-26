@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from . import exceptions
 from quil.agents import (
     _build_override_settings,
     _glob_to_regex,
@@ -259,7 +260,7 @@ def _run_all() -> None:
             failures += 1
             print(f"  ERR   {fn.__name__}: {type(exc).__name__}: {exc}")
     if failures:
-        raise SystemExit(f"{failures} test(s) failed")
+        raise exceptions.Exit(failures)
     print(f"\n{len(tests)} test(s) passed")
 
 
