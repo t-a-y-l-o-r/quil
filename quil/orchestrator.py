@@ -1159,6 +1159,9 @@ def _commit_changes(
             window.stop()
 
 
+_PORCELAIN_PREFIX_LEN = 3  # `XY ` — two-char status code + space
+
+
 def _dirty_paths(cwd: str) -> list[str]:
     """Return paths git considers modified, deleted, or untracked.
 
@@ -1175,8 +1178,8 @@ def _dirty_paths(cwd: str) -> list[str]:
     )
     paths: list[str] = []
     for raw in result.stdout.splitlines():
-        if len(raw) >= 3:
-            paths.append(raw[3:].strip())
+        if len(raw) >= _PORCELAIN_PREFIX_LEN:
+            paths.append(raw[_PORCELAIN_PREFIX_LEN:].strip())
     return paths
 
 
