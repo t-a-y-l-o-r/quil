@@ -5,13 +5,14 @@ Runnable two ways:
 - Pytest:          pytest tests/test_plan_validation.py
 """
 
-from . import exceptions
 from quil.agents import restricted_path_globs
 from quil.orchestrator import (
     _format_classification_feedback,
     _plan_referenced_paths,
     _validate_plan_classification,
 )
+
+from . import exceptions
 
 
 def test_restricted_path_globs_loads_from_coder_settings() -> None:

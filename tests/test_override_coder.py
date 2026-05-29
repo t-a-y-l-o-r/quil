@@ -13,7 +13,6 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from . import exceptions
 from quil.agents import (
     _build_override_settings,
     _glob_to_regex,
@@ -26,6 +25,8 @@ from quil.orchestrator import (
     _format_plan_summary,
     _gate_human_approval,
 )
+
+from . import exceptions
 
 
 def test_glob_double_star_matches_root() -> None:

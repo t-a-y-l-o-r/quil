@@ -9,9 +9,10 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import exceptions
 from quil.agents import autofix_lint
 from quil.orchestrator import _dirty_paths
+
+from . import exceptions
 
 
 def _run_in_repo(cmd: list[str], cwd: str) -> None:

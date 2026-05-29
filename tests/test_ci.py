@@ -7,8 +7,9 @@ Runnable two ways:
 No external dependencies — uses plain assert.
 """
 
-from . import exceptions
 from quil.ci import parse_test_output
+
+from . import exceptions
 
 
 def test_summary_with_decoy_uv_install_line() -> None:

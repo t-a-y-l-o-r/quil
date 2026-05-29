@@ -8,7 +8,6 @@ Runnable two ways:
 import subprocess
 from unittest.mock import MagicMock, patch
 
-from . import exceptions
 from quil.agents import (
     DJANGO_SETTINGS_FOR_MIGRATIONS,
     MIGRATION_TIMEOUT,
@@ -16,6 +15,8 @@ from quil.agents import (
     make_migrations,
 )
 from quil.orchestrator import _apply_migrations
+
+from . import exceptions
 
 
 def _completed(rc: int, stdout: str = "", stderr: str = "") -> MagicMock:
